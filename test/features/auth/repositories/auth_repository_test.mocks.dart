@@ -58,6 +58,26 @@ class MockApiClient extends _i1.Mock implements _i2.ApiClient {
             ),
           )
           as _i3.Future<Map<String, dynamic>>);
+
+  @override
+  _i3.Future<Map<String, dynamic>> put(String? path, {dynamic data}) =>
+      (super.noSuchMethod(
+            Invocation.method(#put, [path], {#data: data}),
+            returnValue: _i3.Future<Map<String, dynamic>>.value(
+              <String, dynamic>{},
+            ),
+          )
+          as _i3.Future<Map<String, dynamic>>);
+
+  @override
+  _i3.Future<Map<String, dynamic>> patch(String? path, {dynamic data}) =>
+      (super.noSuchMethod(
+            Invocation.method(#patch, [path], {#data: data}),
+            returnValue: _i3.Future<Map<String, dynamic>>.value(
+              <String, dynamic>{},
+            ),
+          )
+          as _i3.Future<Map<String, dynamic>>);
 }
 
 /// A class which mocks [SharedPreferences].

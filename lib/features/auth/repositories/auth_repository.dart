@@ -1,45 +1,38 @@
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/network/api_client.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// Repository responsible for handling all authentication-related data operations.
+/// Repository responsible for handling authentication processes.
 class AuthRepository {
   final ApiClient _apiClient;
   final SharedPreferences _prefs;
 
+  /// Initializes the AuthRepository.
+  ///
+  /// [_apiClient] The API client used for network requests.
+  /// [_prefs] Local storage for saving the authentication token.
   AuthRepository(this._apiClient, this._prefs);
 
-  /// Authenticates a user with the provided credentials.
+  /// Authenticates a user and saves the token locally.
+  ///
+  /// [email] The user's email address.
+  /// [password] The user's password.
+  /// Returns true if authentication is successful.
   Future<bool> login(String email, String password) async {
-    final response = await _apiClient.post(
-      '/login',
-      data: {
-        'email': email, 
-        'password': password,
-        'device_name': 'mobile_app'
-      },
-    );
+    final response = await _apiClient.post('/login', data: {
+      'email': email,
+      'password': password,
+    });
 
-    // CORREÇÃO: A tua API Laravel usa o ApiResponser, que coloca o payload dentro 
-    // de um objeto chamado 'data'. Temos de procurar o token lá dentro.
-    if (response.containsKey('data') && response['data'] != null) {
-      final responseData = response['data'] as Map<String, dynamic>;
-      if (responseData.containsKey('token')) {
-        await _prefs.setString(ApiClient.tokenKey, responseData['token']);
-        return true;
-      }
+    if (response.containsKey('token')) {
+      await _prefs.setString(ApiClient.tokenKey, response['token']);
+      return true;
     }
-    
     return false;
   }
 
-  /// Logs out the current user by clearing local data and notifying the server.
+  /// Logs out the currently authenticated user and clears local session.
   Future<void> logout() async {
-    try {
-      await _apiClient.post('/logout');
-    } catch (e) {
-      // Ignore network errors during logout
-    } finally {
-      await _prefs.remove(ApiClient.tokenKey);
-    }
+    await _apiClient.post('/logout');
+    await _prefs.remove(ApiClient.tokenKey);
   }
 }

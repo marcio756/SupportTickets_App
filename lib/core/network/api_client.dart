@@ -84,6 +84,40 @@ class ApiClient {
     }
   }
 
+  /// Performs a generic PUT request.
+  ///
+  /// [path] The API endpoint.
+  /// [data] The payload to send.
+  /// Returns a Map representing the JSON response.
+  Future<Map<String, dynamic>> put(
+    String path, {
+    dynamic data,
+  }) async {
+    try {
+      final response = await _dio.put(path, data: data);
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Performs a generic PATCH request.
+  ///
+  /// [path] The API endpoint.
+  /// [data] The payload to send.
+  /// Returns a Map representing the JSON response.
+  Future<Map<String, dynamic>> patch(
+    String path, {
+    dynamic data,
+  }) async {
+    try {
+      final response = await _dio.patch(path, data: data);
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   /// Standardizes errors from the API into human-readable strings.
   Exception _handleError(DioException error) {
     if (error.response != null) {
