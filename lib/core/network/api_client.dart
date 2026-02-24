@@ -21,7 +21,7 @@ class ApiClient {
   /// Configures base URL, timeouts, and intercepts requests to inject tokens.
   void _configureDio() {
     // Set your local or production Laravel API URL here
-    _dio.options.baseUrl = 'http://127.0.0.1:8000/api';
+    _dio.options.baseUrl = 'http://192.168.1.69:8000/api';
     _dio.options.connectTimeout = const Duration(seconds: 10);
     _dio.options.receiveTimeout = const Duration(seconds: 10);
     _dio.options.headers = {

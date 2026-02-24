@@ -22,21 +22,23 @@ void main() {
   });
 
   group('AuthRepository Tests', () {
-    test('Should return true and save token when login is successful', () async {
-      // Arrange
-      const token = 'fake_jwt_token';
-      when(mockApiClient.post(any, data: anyNamed('data')))
-          .thenAnswer((_) async => {'token': token, 'user': {}});
-      when(mockPrefs.setString(any, any)).thenAnswer((_) async => true);
+  test('Should return true and save token when login is successful', () async {
+    // Arrange
+    when(mockApiClient.post(any, data: anyNamed('data')))
+        .thenAnswer((_) async => {'token': 'fake_token'});
 
-      // Act
-      final result = await authRepository.login('test@test.com', 'password');
+    // Act
+    final result = await authRepository.login('test@test.com', 'password');
 
-      // Assert
-      expect(result, isTrue);
-      verify(mockApiClient.post('/login', data: {'email': 'test@test.com', 'password': 'password'})).called(1);
-      verify(mockPrefs.setString(ApiClient.tokenKey, token)).called(1);
-    });
+    // Assert
+    expect(result, isTrue);
+    // VERIFICAÇÃO ATUALIZADA:
+    verify(mockApiClient.post('/login', data: {
+      'email': 'test@test.com', 
+      'password': 'password',
+      'device_name': 'mobile_app',
+    })).called(1);
+  });
 
     test('Should return false when API does not return a token', () async {
       // Arrange

@@ -3,14 +3,16 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i3;
+import 'dart:async' as _i5;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:supporttickets_app/features/auth/repositories/auth_repository.dart'
-    as _i2;
-import 'package:supporttickets_app/features/tickets/models/ticket.dart' as _i5;
-import 'package:supporttickets_app/features/tickets/repositories/ticket_repository.dart'
     as _i4;
+import 'package:supporttickets_app/features/tickets/models/ticket.dart' as _i3;
+import 'package:supporttickets_app/features/tickets/models/ticket_message.dart'
+    as _i2;
+import 'package:supporttickets_app/features/tickets/repositories/ticket_repository.dart'
+    as _i6;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -27,45 +29,102 @@ import 'package:supporttickets_app/features/tickets/repositories/ticket_reposito
 // ignore_for_file: subtype_of_sealed_class
 // ignore_for_file: invalid_use_of_internal_member
 
+class _FakeTicketMessage_0 extends _i1.SmartFake implements _i2.TicketMessage {
+  _FakeTicketMessage_0(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeTicket_1 extends _i1.SmartFake implements _i3.Ticket {
+  _FakeTicket_1(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
 /// A class which mocks [AuthRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockAuthRepository extends _i1.Mock implements _i2.AuthRepository {
+class MockAuthRepository extends _i1.Mock implements _i4.AuthRepository {
   MockAuthRepository() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i3.Future<bool> login(String? email, String? password) =>
+  _i5.Future<bool> login(String? email, String? password) =>
       (super.noSuchMethod(
             Invocation.method(#login, [email, password]),
-            returnValue: _i3.Future<bool>.value(false),
+            returnValue: _i5.Future<bool>.value(false),
           )
-          as _i3.Future<bool>);
+          as _i5.Future<bool>);
 
   @override
-  _i3.Future<void> logout() =>
+  _i5.Future<void> logout() =>
       (super.noSuchMethod(
             Invocation.method(#logout, []),
-            returnValue: _i3.Future<void>.value(),
-            returnValueForMissingStub: _i3.Future<void>.value(),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
           )
-          as _i3.Future<void>);
+          as _i5.Future<void>);
 }
 
 /// A class which mocks [TicketRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockTicketRepository extends _i1.Mock implements _i4.TicketRepository {
+class MockTicketRepository extends _i1.Mock implements _i6.TicketRepository {
   MockTicketRepository() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i3.Future<List<_i5.Ticket>> getTickets() =>
+  _i5.Future<List<_i3.Ticket>> getTickets() =>
       (super.noSuchMethod(
             Invocation.method(#getTickets, []),
-            returnValue: _i3.Future<List<_i5.Ticket>>.value(<_i5.Ticket>[]),
+            returnValue: _i5.Future<List<_i3.Ticket>>.value(<_i3.Ticket>[]),
           )
-          as _i3.Future<List<_i5.Ticket>>);
+          as _i5.Future<List<_i3.Ticket>>);
+
+  @override
+  _i5.Future<List<_i2.TicketMessage>> getTicketMessages(
+    int? ticketId,
+    int? currentUserId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#getTicketMessages, [ticketId, currentUserId]),
+            returnValue: _i5.Future<List<_i2.TicketMessage>>.value(
+              <_i2.TicketMessage>[],
+            ),
+          )
+          as _i5.Future<List<_i2.TicketMessage>>);
+
+  @override
+  _i5.Future<_i2.TicketMessage> sendMessage(
+    int? ticketId,
+    String? message,
+    int? currentUserId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#sendMessage, [ticketId, message, currentUserId]),
+            returnValue: _i5.Future<_i2.TicketMessage>.value(
+              _FakeTicketMessage_0(
+                this,
+                Invocation.method(#sendMessage, [
+                  ticketId,
+                  message,
+                  currentUserId,
+                ]),
+              ),
+            ),
+          )
+          as _i5.Future<_i2.TicketMessage>);
+
+  @override
+  _i5.Future<_i3.Ticket> createTicket(String? title, String? description) =>
+      (super.noSuchMethod(
+            Invocation.method(#createTicket, [title, description]),
+            returnValue: _i5.Future<_i3.Ticket>.value(
+              _FakeTicket_1(
+                this,
+                Invocation.method(#createTicket, [title, description]),
+              ),
+            ),
+          )
+          as _i5.Future<_i3.Ticket>);
 }

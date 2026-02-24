@@ -4,14 +4,14 @@ import '../../auth/ui/login_screen.dart';
 import '../../tickets/models/ticket.dart';
 import '../../tickets/repositories/ticket_repository.dart';
 import '../../tickets/ui/components/ticket_card.dart';
+import '../../tickets/ui/ticket_create_screen.dart'; // IMPORT ADICIONADO
+import '../../tickets/ui/ticket_details_screen.dart';
 
 /// The main dashboard screen displayed after successful authentication.
-/// Retrieves and displays the user's tickets while providing global app navigation.
 class DashboardScreen extends StatefulWidget {
   final AuthRepository authRepository;
   final TicketRepository ticketRepository;
 
-  /// Initializes the dashboard with required dependencies.
   const DashboardScreen({
     super.key,
     required this.authRepository,
@@ -31,17 +31,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadTickets();
   }
 
-  /// Initiates the network request to fetch the list of tickets.
   void _loadTickets() {
     setState(() {
       _ticketsFuture = widget.ticketRepository.getTickets();
     });
   }
 
-  /// Handles the logout process and routes the user back to the login screen.
   Future<void> _handleLogout(BuildContext context) async {
     await widget.authRepository.logout();
-    
     if (context.mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
@@ -66,12 +63,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh Tickets',
             onPressed: _loadTickets,
           ),
           IconButton(
             icon: const Icon(Icons.logout_rounded),
-            tooltip: 'Logout',
             onPressed: () => _handleLogout(context),
           ),
         ],
@@ -79,12 +74,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: FutureBuilder<List<Ticket>>(
         future: _ticketsFuture,
         builder: (context, snapshot) {
-          // Display loading state while the network request is in flight
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // Handle potential network or parsing errors
           if (snapshot.hasError) {
             return Center(
               child: Padding(
@@ -94,21 +87,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     const Icon(Icons.error_outline, size: 60, color: Colors.redAccent),
                     const SizedBox(height: 16),
-                    Text(
-                      'Failed to load tickets',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
+                    const Text('Failed to load tickets', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-                    Text(
-                      snapshot.error.toString(),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
+                    Text(snapshot.error.toString(), textAlign: TextAlign.center),
                     const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: _loadTickets,
-                      child: const Text('Try Again'),
-                    )
+                    ElevatedButton(onPressed: _loadTickets, child: const Text('Try Again')),
                   ],
                 ),
               ),
@@ -116,18 +99,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           }
 
           final tickets = snapshot.data ?? [];
-
-          // Handle the empty state when the user has no tickets
           if (tickets.isEmpty) {
-            return const Center(
-              child: Text(
-                'You have no tickets yet.',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            );
+            return const Center(child: Text('You have no tickets yet.', style: TextStyle(color: Colors.grey)));
           }
 
-          // Render the populated list of tickets
           return RefreshIndicator(
             onRefresh: () async => _loadTickets(),
             child: ListView.builder(
@@ -138,8 +113,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 return TicketCard(
                   ticket: ticket,
                   onTap: () {
-                    // Placeholder for routing to Ticket Details Screen in the future
-                    debugPrint('Tapped on ticket: ${ticket.id}');
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => TicketDetailsScreen(
+                          ticket: ticket,
+                          ticketRepository: widget.ticketRepository,
+                        ),
+                      ),
+                    );
                   },
                 );
               },
@@ -148,8 +129,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Placeholder for the "Create Ticket" modal/screen
+        onPressed: () async {
+          // Navigation to the creation screen and awaiting the refresh signal
+          final bool? shouldRefresh = await Navigator.of(context).push<bool>(
+            MaterialPageRoute(
+              builder: (_) => TicketCreateScreen(ticketRepository: widget.ticketRepository),
+            ),
+          );
+          
+          if (shouldRefresh == true) {
+            _loadTickets();
+          }
         },
         backgroundColor: Colors.blueAccent,
         child: const Icon(Icons.add, color: Colors.white),
