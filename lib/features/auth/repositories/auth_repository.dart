@@ -21,12 +21,17 @@ class AuthRepository {
     final response = await _apiClient.post('/login', data: {
       'email': email,
       'password': password,
+      'device_name': 'mobile_app',
     });
 
-    if (response.containsKey('token')) {
-      await _prefs.setString(ApiClient.tokenKey, response['token']);
+    // Handle responses wrapped in a 'data' object (common in ApiResponser traits)
+    final responseData = response.containsKey('data') ? response['data'] : response;
+
+    if (responseData != null && responseData is Map && responseData.containsKey('token')) {
+      await _prefs.setString(ApiClient.tokenKey, responseData['token']);
       return true;
     }
+    
     return false;
   }
 

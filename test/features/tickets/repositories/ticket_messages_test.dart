@@ -18,17 +18,21 @@ void main() {
 
   group('Ticket Messages Repository Tests', () {
     test('Should parse ticket messages correctly from API', () async {
-      // Arrange
+      // Arrange - Simulating the full Ticket object response
       final mockData = {
-        'data': [
-          {
-            'id': 1, 
-            'message': 'Hello', 
-            'user_id': 1, 
-            'user_name': 'Admin', 
-            'created_at': '2026-02-24T12:00:00Z'
-          }
-        ]
+        'data': {
+          'id': 1,
+          'title': 'Test Ticket',
+          'messages': [
+            {
+              'id': 1, 
+              'message': 'Hello', 
+              'user_id': 1, 
+              'user_name': 'Admin', 
+              'created_at': '2026-02-24T12:00:00Z'
+            }
+          ]
+        }
       };
 
       when(mockClient.get(any)).thenAnswer((_) async => mockData);
@@ -40,7 +44,7 @@ void main() {
       expect(messages.length, 1);
       expect(messages.first.message, 'Hello');
       expect(messages.first.isFromMe, true);
-      verify(mockClient.get('/tickets/1/messages')).called(1);
+      verify(mockClient.get('/tickets/1')).called(1);
     });
 
     test('Should send message successfully', () async {
