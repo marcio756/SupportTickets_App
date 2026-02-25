@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/network/api_client.dart';
+import 'core/theme/theme_controller.dart';
 import 'features/auth/repositories/auth_repository.dart';
 import 'features/auth/ui/login_screen.dart';
 import 'features/dashboard/ui/dashboard_screen.dart';
@@ -21,6 +22,9 @@ void main() async {
   
   // Initialize Architecture Layers
   final apiClient = ApiClient(dio, prefs);
+  
+  // Initialize Theme Controller globally
+  ThemeController().initialize(prefs);
   
   // Injecting dependencies using named parameters as defined in our refactored repositories
   final authRepository = AuthRepository(apiClient: apiClient, prefs: prefs);
@@ -59,24 +63,41 @@ class SupportTicketsApp extends StatelessWidget {
     final hasToken = prefs.getString(ApiClient.tokenKey) != null && 
                      prefs.getString(ApiClient.tokenKey)!.isNotEmpty;
 
-    return MaterialApp(
-      title: 'Support Tickets',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
-        useMaterial3: true,
-      ),
-      home: hasToken
-          ? DashboardScreen(
-              authRepository: authRepository,
-              ticketRepository: ticketRepository,
-              profileRepository: profileRepository,
-            )
-          : LoginScreen(
-              authRepository: authRepository,
-              ticketRepository: ticketRepository,
-              profileRepository: profileRepository,
+    // ListenableBuilder listens to theme changes and rebuilds the app instantly
+    return ListenableBuilder(
+      listenable: ThemeController(),
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'Support Tickets',
+          debugShowCheckedModeBanner: false,
+          themeMode: ThemeController().themeMode,
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.blueAccent,
+              brightness: Brightness.light,
             ),
+            useMaterial3: true,
+          ),
+          darkTheme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.blueAccent,
+              brightness: Brightness.dark,
+            ),
+            useMaterial3: true,
+          ),
+          home: hasToken
+              ? DashboardScreen(
+                  authRepository: authRepository,
+                  ticketRepository: ticketRepository,
+                  profileRepository: profileRepository,
+                )
+              : LoginScreen(
+                  authRepository: authRepository,
+                  ticketRepository: ticketRepository,
+                  profileRepository: profileRepository,
+                ),
+        );
+      }
     );
   }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../auth/repositories/auth_repository.dart';
-import '../../auth/ui/login_screen.dart';
 import '../../tickets/repositories/ticket_repository.dart';
 import '../../profile/repositories/profile_repository.dart';
 import '../../tickets/ui/components/ticket_card.dart';
@@ -8,6 +7,8 @@ import '../../tickets/components/ticket_filters_bottom_sheet.dart';
 import '../../tickets/ui/ticket_create_screen.dart';
 import '../../tickets/ui/ticket_details_screen.dart';
 import '../../tickets/viewmodels/ticket_list_viewmodel.dart';
+import '../../../core/widgets/app_drawer.dart';
+import '../../../core/widgets/placeholder_screen.dart';
 
 /// The main dashboard screen displayed after successful authentication.
 /// It acts purely as a UI layer, observing the [TicketListViewModel] for state changes.
@@ -46,27 +47,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
-  /// Handles the user logout process and navigation robustly.
-  Future<void> _handleLogout(BuildContext context) async {
-    try {
-      await widget.authRepository.logout();
-    } catch (e) {
-      debugPrint('API Logout failed, forcing local logout: $e');
-    } finally {
-      if (context.mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => LoginScreen(
-              authRepository: widget.authRepository,
-              ticketRepository: widget.ticketRepository,
-              profileRepository: widget.profileRepository,
-            ),
-          ),
-        );
-      }
-    }
-  }
-
   /// Opens the filter bottom sheet.
   void _openFilters() {
     showModalBottomSheet(
@@ -80,27 +60,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  /// Navigates to the generic Notifications screen.
+  void _openNotifications() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PlaceholderScreen(
+          title: 'Notificações',
+          drawer: AppDrawer(
+            authRepository: widget.authRepository,
+            ticketRepository: widget.ticketRepository,
+            profileRepository: widget.profileRepository,
+            currentRoute: '', // Emptied because Notifications overlay is an extra route
+          ),
+        )
+      )
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      drawer: AppDrawer(
+        authRepository: widget.authRepository,
+        ticketRepository: widget.ticketRepository,
+        profileRepository: widget.profileRepository,
+        currentRoute: 'Tickets', // Highlights 'Tickets' in the Sidebar
+      ),
       appBar: AppBar(
         title: const Text('My Tickets', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0, // Removing elevation to blend with search bar
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_list_rounded),
-            onPressed: _openFilters,
+            icon: const Icon(Icons.notifications_none_rounded),
+            tooltip: 'Notificações',
+            onPressed: _openNotifications,
           ),
           IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            onPressed: () => _handleLogout(context),
+            icon: const Icon(Icons.filter_list_rounded),
+            tooltip: 'Filtros',
+            onPressed: _openFilters,
           ),
         ],
       ),
-      // ListenableBuilder listens to the ViewModel and rebuilds the UI when notifyListeners() is called
       body: ListenableBuilder(
         listenable: _viewModel,
         builder: (context, _) {
@@ -108,7 +109,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               // Search Bar
               Container(
-                color: Colors.white,
+                color: Theme.of(context).scaffoldBackgroundColor,
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: TextField(
                   decoration: InputDecoration(
@@ -119,7 +120,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       borderSide: BorderSide.none,
                     ),
                     filled: true,
-                    fillColor: Colors.grey.shade100,
+                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                     contentPadding: const EdgeInsets.symmetric(vertical: 0),
                   ),
                   onSubmitted: (value) => _viewModel.setSearchQuery(value),
