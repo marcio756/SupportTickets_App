@@ -9,7 +9,6 @@ import 'components/ticket_status_badge.dart';
 import 'components/ticket_status_dropdown.dart';
 import 'components/support_time_display.dart';
 
-/// Screen displaying the details and conversation thread of a specific ticket.
 class TicketDetailsScreen extends StatefulWidget {
   final Ticket ticket;
   final TicketRepository ticketRepository;
@@ -80,12 +79,12 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
           const SizedBox(width: 8),
           Text(
             '$label: ',
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Theme.of(context).colorScheme.onSurface),
           ),
           Expanded(
             child: Text(
               value,
-              style: TextStyle(color: Colors.grey.shade800, fontSize: 13),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -96,12 +95,12 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text('Ticket #${widget.ticket.id}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
         elevation: 1,
         actions: [
           ListenableBuilder(
@@ -114,7 +113,6 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Rendering the Support Time dynamically in the AppBar
                   if (isAssignedToMe && isTicketInProgress)
                     Padding(
                       padding: const EdgeInsets.only(right: 8.0),
@@ -146,9 +144,9 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.redAccent, size: 50),
+                    Icon(Icons.error_outline, color: colorScheme.error, size: 50),
                     const SizedBox(height: 16),
-                    Text(_viewModel.errorMessage!, textAlign: TextAlign.center),
+                    Text(_viewModel.errorMessage!, textAlign: TextAlign.center, style: TextStyle(color: colorScheme.onSurface)),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: _viewModel.initialize,
@@ -166,37 +164,36 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
 
           return Column(
             children: [
-              // Minimized Collapsible Header (ExpansionTile)
               Container(
-                color: Colors.white,
+                color: colorScheme.surface,
                 child: Theme(
                   data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                   child: ExpansionTile(
                     title: Text(
                       _viewModel.ticket.title,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
                     ),
                     subtitle: Text(
                       'Clique para ver detalhes e opções',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
                     ),
                     childrenPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0).copyWith(top: 0),
                     expandedCrossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         _viewModel.ticket.description,
-                        style: const TextStyle(color: Colors.black87, fontSize: 14),
+                        style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
                       ),
                       
                       const SizedBox(height: 16),
-                      const Divider(),
+                      Divider(color: colorScheme.outlineVariant),
                       const SizedBox(height: 8),
 
                       _buildUserInfoRow(
                         Icons.person, 
                         'Cliente', 
                         _viewModel.ticket.customerName ?? 'Desconhecido', 
-                        Colors.grey.shade600
+                        colorScheme.onSurfaceVariant
                       ),
 
                       if (ticketHasAssignee)
@@ -204,7 +201,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                           Icons.support_agent, 
                           'Suporte', 
                           isAssignedToMe ? '${_viewModel.ticket.assigneeName!} (Tu)' : _viewModel.ticket.assigneeName!, 
-                          Colors.blueAccent
+                          colorScheme.primary
                         )
                       else if (_viewModel.isSupporter) ...[
                         const SizedBox(height: 8),
@@ -212,11 +209,11 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blueAccent,
-                              foregroundColor: Colors.white,
+                              backgroundColor: colorScheme.primary,
+                              foregroundColor: colorScheme.onPrimary,
                             ),
                             icon: _viewModel.isClaiming 
-                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.onPrimary))
                                 : const Icon(Icons.pan_tool, size: 18),
                             label: const Text('Reivindicar Ticket'),
                             onPressed: _viewModel.isClaiming ? null : _viewModel.claimTicket,
@@ -226,11 +223,11 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
 
                       if (_viewModel.isSupporter) ...[
                         const SizedBox(height: 12),
-                        const Divider(),
+                        Divider(color: colorScheme.outlineVariant),
                         const SizedBox(height: 8),
-                        const Text(
+                        Text(
                           'Alterar Estado do Ticket:',
-                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: colorScheme.onSurface),
                         ),
                         const SizedBox(height: 8),
                         TicketStatusDropdown(
@@ -249,7 +246,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
               
               Expanded(
                 child: _viewModel.messages.isEmpty
-                    ? const Center(child: Text('Ainda não há mensagens. Comece a conversa!'))
+                    ? Center(child: Text('Ainda não há mensagens. Comece a conversa!', style: TextStyle(color: colorScheme.onSurfaceVariant)))
                     : ListView.builder(
                         controller: _scrollController,
                         padding: const EdgeInsets.all(16),

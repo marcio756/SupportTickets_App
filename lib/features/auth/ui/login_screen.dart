@@ -32,8 +32,6 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _viewModel = LoginViewModel(authRepository: widget.authRepository);
-
-    // Listen to changes to handle navigation or show errors dynamically
     _viewModel.addListener(_onViewModelChange);
   }
 
@@ -46,11 +44,9 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  /// Reacts to ViewModel state changes.
   void _onViewModelChange() {
     if (_viewModel.isSuccess) {
       if (mounted) {
-        // Navigate to dashboard and prevent going back
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => DashboardScreen(
@@ -71,7 +67,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _submitLogin() {
-    // Hide keyboard
     FocusScope.of(context).unfocus();
     _viewModel.login(_emailController.text, _passwordController.text);
   }
@@ -79,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 48.0),
@@ -90,22 +85,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.support_agent_rounded, size: 100, color: Colors.blueAccent),
+                  Icon(Icons.support_agent_rounded, size: 100, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(height: 24),
-                  const Text(
+                  Text(
                     'Support Tickets',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Inicie sessão na sua conta',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.black54),
+                    style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 48),
 
-                  // Email Field
                   TextField(
                     controller: _emailController,
                     enabled: !_viewModel.isLoading,
@@ -116,12 +110,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       prefixIcon: const Icon(Icons.email_outlined),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
-                      fillColor: Colors.grey.shade50,
+                      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  // Password Field
                   TextField(
                     controller: _passwordController,
                     enabled: !_viewModel.isLoading,
@@ -133,29 +126,28 @@ class _LoginScreenState extends State<LoginScreen> {
                       prefixIcon: const Icon(Icons.lock_outline),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
-                      fillColor: Colors.grey.shade50,
+                      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                     ),
                   ),
                   const SizedBox(height: 32),
 
-                  // Login Button
                   SizedBox(
                     height: 55,
                     child: ElevatedButton(
                       onPressed: _viewModel.isLoading ? null : _submitLogin,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-                        foregroundColor: Colors.white,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                         elevation: 2,
                       ),
                       child: _viewModel.isLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 24, 
                               height: 24, 
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                              child: CircularProgressIndicator(color: Theme.of(context).colorScheme.onPrimary, strokeWidth: 2)
                             )
                           : const Text('Entrar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     ),

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../viewmodels/ticket_list_viewmodel.dart';
 
-/// Bottom sheet component containing the filter options for the ticket list.
-/// Separates UI filtering concerns from the main Dashboard screen.
 class TicketFiltersBottomSheet extends StatelessWidget {
   final TicketListViewModel viewModel;
 
@@ -18,9 +16,9 @@ class TicketFiltersBottomSheet extends StatelessWidget {
       builder: (context, _) {
         return Container(
           padding: const EdgeInsets.all(24.0),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -29,9 +27,9 @@ class TicketFiltersBottomSheet extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Filter Tickets',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
                   ),
                   TextButton(
                     onPressed: () {
@@ -44,15 +42,13 @@ class TicketFiltersBottomSheet extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               
-              // Status Filter
               DropdownButtonFormField<String>(
-                // CORREÇÃO: Utilização de initialValue em vez do depreciado value
                 initialValue: viewModel.statusFilter,
                 decoration: InputDecoration(
                   labelText: 'Status',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   filled: true,
-                  fillColor: Colors.grey.shade50,
+                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 ),
                 items: const [
                   DropdownMenuItem(value: null, child: Text('All Statuses')),
@@ -64,18 +60,16 @@ class TicketFiltersBottomSheet extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // Assignee Filter (Only visible if the user is a supporter / has customers)
               if (viewModel.customers.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
                   child: DropdownButtonFormField<String>(
-                    // CORREÇÃO: Utilização de initialValue em vez do depreciado value
                     initialValue: viewModel.assigneeFilter,
                     decoration: InputDecoration(
                       labelText: 'Assigned To',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                       filled: true,
-                      fillColor: Colors.grey.shade50,
+                      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                     ),
                     items: const [
                       DropdownMenuItem(value: null, child: Text('Anyone')),
@@ -86,16 +80,14 @@ class TicketFiltersBottomSheet extends StatelessWidget {
                   ),
                 ),
 
-              // Customer Filter (Only visible if the user is a supporter)
               if (viewModel.customers.isNotEmpty)
                 DropdownButtonFormField<int>(
-                  // CORREÇÃO: Utilização de initialValue em vez do depreciado value
                   initialValue: viewModel.customerFilter,
                   decoration: InputDecoration(
                     labelText: 'Customer',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     filled: true,
-                    fillColor: Colors.grey.shade50,
+                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                   ),
                   items: [
                     const DropdownMenuItem<int>(value: null, child: Text('All Customers')),
@@ -112,8 +104,8 @@ class TicketFiltersBottomSheet extends StatelessWidget {
               const SizedBox(height: 24),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  foregroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
@@ -123,7 +115,7 @@ class TicketFiltersBottomSheet extends StatelessWidget {
                 },
                 child: const Text('Apply Filters', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ),
-              const SizedBox(height: 16), // SafeArea padding
+              const SizedBox(height: 16), 
             ],
           ),
         );

@@ -10,8 +10,6 @@ import '../../tickets/viewmodels/ticket_list_viewmodel.dart';
 import '../../../core/widgets/app_drawer.dart';
 import '../../../core/widgets/placeholder_screen.dart';
 
-/// The main dashboard screen displayed after successful authentication.
-/// It acts purely as a UI layer, observing the [TicketListViewModel] for state changes.
 class DashboardScreen extends StatefulWidget {
   final AuthRepository authRepository;
   final TicketRepository ticketRepository;
@@ -29,25 +27,21 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  // The ViewModel instance responsible for this screen's business logic
   late final TicketListViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    // Initialize the ViewModel and trigger the initial data fetch
     _viewModel = TicketListViewModel(ticketRepository: widget.ticketRepository);
     _viewModel.loadTickets();
   }
 
   @override
   void dispose() {
-    // Dispose the ViewModel to prevent memory leaks
     _viewModel.dispose();
     super.dispose();
   }
 
-  /// Opens the filter bottom sheet.
   void _openFilters() {
     showModalBottomSheet(
       context: context,
@@ -60,7 +54,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Navigates to the generic Notifications screen.
   void _openNotifications() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -70,7 +63,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             authRepository: widget.authRepository,
             ticketRepository: widget.ticketRepository,
             profileRepository: widget.profileRepository,
-            currentRoute: '', // Emptied because Notifications overlay is an extra route
+            currentRoute: '', 
           ),
         )
       )
@@ -80,11 +73,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: AppDrawer(
         authRepository: widget.authRepository,
         ticketRepository: widget.ticketRepository,
         profileRepository: widget.profileRepository,
-        currentRoute: 'Tickets', // Highlights 'Tickets' in the Sidebar
+        currentRoute: 'Tickets',
       ),
       appBar: AppBar(
         title: const Text('My Tickets', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -107,7 +101,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         builder: (context, _) {
           return Column(
             children: [
-              // Search Bar
               Container(
                 color: Theme.of(context).scaffoldBackgroundColor,
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -126,8 +119,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   onSubmitted: (value) => _viewModel.setSearchQuery(value),
                 ),
               ),
-
-              // Content Area
               Expanded(
                 child: _buildContent(),
               ),
@@ -147,13 +138,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _viewModel.loadTickets();
           }
         },
-        backgroundColor: Colors.blueAccent,
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        child: Icon(Icons.add, color: Theme.of(context).colorScheme.onPrimary),
       ),
     );
   }
 
-  /// Builds the main content area based on the view model state.
   Widget _buildContent() {
     if (_viewModel.isLoading && _viewModel.tickets.isEmpty) {
       return const Center(child: CircularProgressIndicator());
@@ -166,7 +156,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 60, color: Colors.redAccent),
+              Icon(Icons.error_outline, size: 60, color: Theme.of(context).colorScheme.error),
               const SizedBox(height: 16),
               const Text('Failed to load tickets', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
@@ -183,8 +173,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     if (_viewModel.tickets.isEmpty) {
-      return const Center(
-        child: Text('You have no tickets matching the criteria.', style: TextStyle(color: Colors.grey))
+      return Center(
+        child: Text('You have no tickets matching the criteria.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
       );
     }
 

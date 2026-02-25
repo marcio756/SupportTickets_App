@@ -3,13 +3,9 @@ import '../../models/ticket_message.dart';
 import 'attachment_preview.dart';
 
 /// Renders a single chat bubble for a ticket message.
-/// Aligns left or right based on whether the message was sent by the current user.
 class MessageBubble extends StatelessWidget {
   final TicketMessage message;
 
-  /// Initializes the MessageBubble.
-  /// 
-  /// [message] contains the data to be displayed.
   const MessageBubble({
     super.key,
     required this.message,
@@ -23,13 +19,13 @@ class MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isMe = message.isFromMe;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
         crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          // Render the user's name above the bubble if it's someone else
           if (!isMe)
             Padding(
               padding: const EdgeInsets.only(left: 12.0, bottom: 4.0),
@@ -37,7 +33,7 @@ class MessageBubble extends StatelessWidget {
                 message.userName,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey.shade600,
+                  color: colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -48,7 +44,7 @@ class MessageBubble extends StatelessWidget {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             decoration: BoxDecoration(
-              color: isMe ? Colors.blueAccent : Colors.white,
+              color: isMe ? colorScheme.primary : colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.only(
                 topLeft: const Radius.circular(16),
                 topRight: const Radius.circular(16),
@@ -73,12 +69,11 @@ class MessageBubble extends StatelessWidget {
                       message.message,
                       style: TextStyle(
                         fontSize: 15,
-                        color: isMe ? Colors.white : Colors.black87,
+                        color: isMe ? colorScheme.onPrimary : colorScheme.onSurface,
                       ),
                     ),
                   ),
                 
-                // Show attachment preview if the message contains an attachment
                 if (message.attachmentUrl != null && message.attachmentUrl!.isNotEmpty)
                   Align(
                     alignment: Alignment.centerLeft,
@@ -93,7 +88,7 @@ class MessageBubble extends StatelessWidget {
                   _formatTime(message.createdAt),
                   style: TextStyle(
                     fontSize: 10,
-                    color: isMe ? Colors.white70 : Colors.black45,
+                    color: isMe ? colorScheme.onPrimary.withValues(alpha: 0.7) : colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],

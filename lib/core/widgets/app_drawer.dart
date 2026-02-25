@@ -12,8 +12,6 @@ class AppDrawer extends StatefulWidget {
   final AuthRepository authRepository;
   final TicketRepository ticketRepository;
   final ProfileRepository profileRepository;
-  
-  /// Identifies the current active route to highlight it visually.
   final String currentRoute;
 
   const AppDrawer({
@@ -76,8 +74,7 @@ class _AppDrawerState extends State<AppDrawer> {
     }
   }
 
-  /// Reusable method to create identical instances of this Drawer 
-  /// for generic placeholder screens.
+  /// Reusable method to create identical instances of this Drawer
   Widget _buildSelfDrawer(String newRoute) {
     return AppDrawer(
       authRepository: widget.authRepository,
@@ -87,11 +84,10 @@ class _AppDrawerState extends State<AppDrawer> {
     );
   }
 
-  /// Handles internal navigation. Closes drawer if already on route,
-  /// otherwise uses pushReplacement to prevent heavy backstacks.
+  /// Handles internal navigation. Closes drawer if already on route.
   void _navigateTo(String route, Widget screen) {
     if (widget.currentRoute == route) {
-      Navigator.pop(context); // Just close the drawer
+      Navigator.pop(context);
     } else {
       Navigator.pushReplacement(
         context,
@@ -103,27 +99,26 @@ class _AppDrawerState extends State<AppDrawer> {
   @override
   Widget build(BuildContext context) {
     final themeMode = ThemeController().isDarkMode;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Drawer(
+      backgroundColor: colorScheme.surface,
       child: Column(
         children: [
-          // Header with Avatar and User Info
           UserAccountsDrawerHeader(
-            accountName: Text(_userName, style: const TextStyle(fontWeight: FontWeight.bold)),
-            accountEmail: Text(_userEmail),
+            accountName: Text(_userName, style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onPrimary)),
+            accountEmail: Text(_userEmail, style: TextStyle(color: colorScheme.onPrimary.withValues(alpha: 0.8))),
             currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.white,
+              backgroundColor: colorScheme.onPrimary,
               child: Text(
                 _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
-                style: const TextStyle(fontSize: 24, color: Colors.blueAccent),
+                style: TextStyle(fontSize: 24, color: colorScheme.primary),
               ),
             ),
-            decoration: const BoxDecoration(
-              color: Colors.blueAccent,
+            decoration: BoxDecoration(
+              color: colorScheme.primary,
             ),
           ),
-
-          // Main Navigation Items
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
@@ -138,7 +133,6 @@ class _AppDrawerState extends State<AppDrawer> {
                   icon: Icons.confirmation_number_rounded,
                   title: 'Tickets',
                   route: 'Tickets',
-                  // Tickets is currently mapped to our DashboardScreen logic
                   onTap: () => _navigateTo('Tickets', DashboardScreen(
                     authRepository: widget.authRepository,
                     ticketRepository: widget.ticketRepository,
@@ -160,10 +154,7 @@ class _AppDrawerState extends State<AppDrawer> {
               ],
             ),
           ),
-
           const Divider(),
-
-          // Theme Switcher & Logout (Footer Area)
           ListenableBuilder(
             listenable: ThemeController(),
             builder: (context, _) {
@@ -176,8 +167,8 @@ class _AppDrawerState extends State<AppDrawer> {
             }
           ),
           ListTile(
-            leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-            title: const Text('Terminar Sessão', style: TextStyle(color: Colors.redAccent)),
+            leading: Icon(Icons.logout_rounded, color: colorScheme.error),
+            title: Text('Terminar Sessão', style: TextStyle(color: colorScheme.error)),
             onTap: () => _handleLogout(context),
           ),
           const SizedBox(height: 16),
@@ -189,16 +180,18 @@ class _AppDrawerState extends State<AppDrawer> {
   /// Helper to generate visually consistent list items
   Widget _buildNavItem({required IconData icon, required String title, required String route, required VoidCallback onTap}) {
     final isSelected = widget.currentRoute == route;
+    final colorScheme = Theme.of(context).colorScheme;
     return ListTile(
-      leading: Icon(icon, color: isSelected ? Colors.blueAccent : null),
+      leading: Icon(icon, color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant),
       title: Text(
         title, 
         style: TextStyle(
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? Colors.blueAccent : null,
+          color: isSelected ? colorScheme.primary : colorScheme.onSurface,
         )
       ),
       selected: isSelected,
+      selectedTileColor: colorScheme.primaryContainer.withValues(alpha: 0.3),
       onTap: onTap,
     );
   }

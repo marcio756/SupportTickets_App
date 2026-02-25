@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 class SupportTimeDisplay extends StatelessWidget {
   final String? supportTime;
 
-  /// Initializes the display with the provided time string (e.g., "01:30:00").
   const SupportTimeDisplay({super.key, required this.supportTime});
 
   @override
@@ -13,15 +12,21 @@ class SupportTimeDisplay extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    // Visual feedback if time is low (e.g., less than 10 minutes '00:0X:XX')
     final bool isLowTime = supportTime!.startsWith('00:0');
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isLowTime ? Colors.red.shade50 : Colors.grey.shade100,
+        color: isLowTime 
+            ? (isDark ? Colors.red.shade900.withValues(alpha: 0.4) : Colors.red.shade50)
+            : Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isLowTime ? Colors.red.shade200 : Colors.grey.shade300),
+        border: Border.all(
+          color: isLowTime 
+              ? (isDark ? Colors.redAccent : Colors.red.shade200)
+              : Theme.of(context).colorScheme.outlineVariant
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -29,7 +34,9 @@ class SupportTimeDisplay extends StatelessWidget {
           Icon(
             Icons.timer_outlined,
             size: 16,
-            color: isLowTime ? Colors.red.shade700 : Colors.grey.shade700,
+            color: isLowTime 
+                ? (isDark ? Colors.redAccent.shade100 : Colors.red.shade700) 
+                : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(width: 4),
           Text(
@@ -37,7 +44,9 @@ class SupportTimeDisplay extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: isLowTime ? Colors.red.shade700 : Colors.grey.shade800,
+              color: isLowTime 
+                  ? (isDark ? Colors.redAccent.shade100 : Colors.red.shade800)
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
               letterSpacing: 0.5,
             ),
           ),

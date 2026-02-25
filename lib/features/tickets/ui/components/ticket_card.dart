@@ -2,13 +2,8 @@ import 'package:flutter/material.dart';
 import '../../models/ticket.dart';
 import 'ticket_status_badge.dart';
 
-/// A card widget that displays a summary of a single [Ticket].
-/// Encapsulates the layout and styling to keep the list view clean.
 class TicketCard extends StatelessWidget {
-  /// The data model containing the ticket information to be displayed.
   final Ticket ticket;
-  
-  /// Callback triggered when the entire card is tapped.
   final VoidCallback? onTap;
 
   const TicketCard({
@@ -23,6 +18,7 @@ class TicketCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
       shadowColor: Colors.black12,
+      color: Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
@@ -39,9 +35,10 @@ class TicketCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       ticket.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -55,7 +52,7 @@ class TicketCard extends StatelessWidget {
               Text(
                 ticket.description,
                 style: TextStyle(
-                  color: Colors.grey.shade700,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 14,
                 ),
                 maxLines: 2,
@@ -65,13 +62,12 @@ class TicketCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Icon(Icons.calendar_today, size: 14, color: Colors.grey.shade500),
+                  Icon(Icons.calendar_today, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
-                    // A simple date formatting strategy. In production, consider using the intl package.
                     '${ticket.createdAt.day.toString().padLeft(2, '0')}/${ticket.createdAt.month.toString().padLeft(2, '0')}/${ticket.createdAt.year}',
                     style: TextStyle(
-                      color: Colors.grey.shade500,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 12,
                     ),
                   ),

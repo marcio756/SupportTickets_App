@@ -4,14 +4,8 @@ import 'package:file_picker/file_picker.dart';
 
 /// A reusable chat input component for typing, attaching files, and sending messages.
 class TicketChatInput extends StatefulWidget {
-  /// Callback triggered when the user submits a message.
-  /// First parameter is the text message, second is the optional file.
   final Function(String?, File?) onSendMessage;
-  
-  /// Indicates if a message is currently being sent, disabling the input.
   final bool isSending;
-
-  /// Indicates if the input is globally enabled (e.g. ticket is not closed).
   final bool isEnabled;
 
   const TicketChatInput({
@@ -51,11 +45,8 @@ class _TicketChatInputState extends State<TicketChatInput> {
   /// Submits the text and/or file to the parent callback.
   void _submit() {
     final text = _controller.text.trim();
-    
-    // Ensure we don't submit totally empty payloads
     if ((text.isNotEmpty || _selectedFile != null) && !widget.isSending && widget.isEnabled) {
       widget.onSendMessage(text.isNotEmpty ? text : null, _selectedFile);
-      
       _controller.clear();
       setState(() {
         _selectedFile = null;
@@ -72,11 +63,12 @@ class _TicketChatInputState extends State<TicketChatInput> {
   @override
   Widget build(BuildContext context) {
     final bool canInteract = !widget.isSending && widget.isEnabled;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -90,43 +82,41 @@ class _TicketChatInputState extends State<TicketChatInput> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Render the selected file preview if exists
             if (_selectedFile != null)
               Container(
                 margin: const EdgeInsets.only(bottom: 8.0, left: 8.0, right: 8.0),
                 padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12.0),
-                  border: Border.all(color: Colors.blue.shade100),
+                  border: Border.all(color: colorScheme.outlineVariant),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.attach_file, size: 16, color: Colors.blue),
+                    Icon(Icons.attach_file, size: 16, color: colorScheme.primary),
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
                         _selectedFile!.path.split('/').last,
-                        style: TextStyle(fontSize: 12, color: Colors.blue.shade900),
+                        style: TextStyle(fontSize: 12, color: colorScheme.onSurface),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 8),
                     InkWell(
                       onTap: _removeFile,
-                      child: const Icon(Icons.close, size: 16, color: Colors.red),
+                      child: Icon(Icons.close, size: 16, color: colorScheme.error),
                     ),
                   ],
                 ),
               ),
             
-            // Text input and action buttons
             Row(
               children: [
                 IconButton(
                   icon: const Icon(Icons.attach_file),
-                  color: canInteract ? Colors.grey.shade600 : Colors.grey.shade400,
+                  color: canInteract ? colorScheme.onSurfaceVariant : colorScheme.onSurface.withValues(alpha: 0.3),
                   onPressed: _pickFile,
                 ),
                 Expanded(
@@ -135,16 +125,16 @@ class _TicketChatInputState extends State<TicketChatInput> {
                     enabled: canInteract,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _submit(),
+                    style: TextStyle(color: colorScheme.onSurface),
                     decoration: InputDecoration(
-                      hintText: widget.isEnabled 
-                          ? 'Escreva uma mensagem...' 
-                          : 'O ticket não está em progresso.',
+                      hintText: widget.isEnabled ? 'Escreva uma mensagem...' : 'Ticket fechado/pendente.',
+                      hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24.0),
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      fillColor: canInteract ? Colors.grey.shade100 : Colors.grey.shade200,
+                      fillColor: canInteract ? colorScheme.surfaceContainerHighest : colorScheme.surfaceContainer,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     ),
                   ),
@@ -152,20 +142,20 @@ class _TicketChatInputState extends State<TicketChatInput> {
                 const SizedBox(width: 8),
                 Container(
                   decoration: BoxDecoration(
-                    color: widget.isEnabled ? Colors.blueAccent : Colors.grey,
+                    color: widget.isEnabled ? colorScheme.primary : colorScheme.surfaceContainerHighest,
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
                     icon: widget.isSending
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                              color: Colors.white,
+                              color: colorScheme.onPrimary,
                               strokeWidth: 2,
                             ),
                           )
-                        : const Icon(Icons.send, color: Colors.white, size: 20),
+                        : Icon(Icons.send, color: widget.isEnabled ? colorScheme.onPrimary : colorScheme.onSurfaceVariant, size: 20),
                     onPressed: canInteract ? _submit : null,
                   ),
                 ),

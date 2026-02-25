@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
-/// A reusable dropdown component specifically designed to handle ticket status changes.
 class TicketStatusDropdown extends StatelessWidget {
   final String currentStatus;
   final ValueChanged<String> onStatusChanged;
   final bool isLoading;
 
-  /// Initializes the dropdown with the current status and a callback for changes.
   const TicketStatusDropdown({
     super.key,
     required this.currentStatus,
@@ -22,21 +20,17 @@ class TicketStatusDropdown extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8.0),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8.0),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       ),
       icon: isLoading 
-          ? const SizedBox(
-              width: 16, 
-              height: 16, 
-              child: CircularProgressIndicator(strokeWidth: 2)
-            ) 
+          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) 
           : const Icon(Icons.arrow_drop_down),
       items: const [
         DropdownMenuItem(value: 'open', child: Text('Open')),

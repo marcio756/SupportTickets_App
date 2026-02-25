@@ -2,19 +2,10 @@ import 'package:flutter/material.dart';
 
 /// A reusable, styled text input field conforming to the application's design system.
 class CustomTextField extends StatelessWidget {
-  /// Controls the text being edited.
   final TextEditingController controller;
-  
-  /// The placeholder text shown when the field is empty.
   final String hintText;
-  
-  /// Determines if the field should hide its content (useful for passwords).
   final bool obscureText;
-  
-  /// Identifies the type of keyboard to display.
   final TextInputType keyboardType;
-  
-  /// Optional validation logic for the input.
   final String? Function(String?)? validator;
 
   const CustomTextField({
@@ -38,16 +29,18 @@ class CustomTextField extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.grey),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
         ),
+        filled: true,
+        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       ),
     );
   }
