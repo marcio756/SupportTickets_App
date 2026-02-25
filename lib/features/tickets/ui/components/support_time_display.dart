@@ -1,32 +1,44 @@
 import 'package:flutter/material.dart';
 
-/// Displays the total time spent by support agents on this ticket.
+/// A reusable component to display the remaining support time of a ticket.
 class SupportTimeDisplay extends StatelessWidget {
-  final String? time;
+  final String? supportTime;
 
-  const SupportTimeDisplay({super.key, this.time});
+  /// Initializes the display with the provided time string (e.g., "01:30:00").
+  const SupportTimeDisplay({super.key, required this.supportTime});
 
   @override
   Widget build(BuildContext context) {
-    if (time == null || time == "00:00:00") return const SizedBox.shrink();
+    if (supportTime == null || supportTime!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Visual feedback if time is low (e.g., less than 10 minutes '00:0X:XX')
+    final bool isLowTime = supportTime!.startsWith('00:0');
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.blueGrey.shade50,
-        borderRadius: BorderRadius.circular(4),
+        color: isLowTime ? Colors.red.shade50 : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isLowTime ? Colors.red.shade200 : Colors.grey.shade300),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.timer_outlined, size: 14, color: Colors.blueGrey),
+          Icon(
+            Icons.timer_outlined,
+            size: 16,
+            color: isLowTime ? Colors.red.shade700 : Colors.grey.shade700,
+          ),
           const SizedBox(width: 4),
           Text(
-            'Time Spent: $time',
+            supportTime!,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Colors.blueGrey.shade700,
+              color: isLowTime ? Colors.red.shade700 : Colors.grey.shade800,
+              letterSpacing: 0.5,
             ),
           ),
         ],

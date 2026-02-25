@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/ticket.dart';
 import '../models/ticket_message.dart';
@@ -10,19 +11,19 @@ class TicketDetailsViewModel extends ChangeNotifier {
   final TicketRepository ticketRepository;
   final ProfileRepository profileRepository;
   
-  /// The current ticket being viewed.
   Ticket ticket;
 
   List<TicketMessage> _messages = [];
   bool _isLoading = false;
   bool _isSending = false;
   bool _isUpdatingStatus = false;
-  bool _isClaiming = false; // Novo estado para o botão de reivindicar
+  bool _isClaiming = false;
   String? _errorMessage;
   int? _currentUserId;
   String? _currentUserRole;
 
-  /// Initializes the ViewModel with necessary repositories and the initial ticket.
+  Timer? _supportTimer;
+
   TicketDetailsViewModel({
     required this.ticketRepository,
     required this.profileRepository,
@@ -37,10 +38,15 @@ class TicketDetailsViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   int? get currentUserId => _currentUserId;
   
-  /// Determines if the current authenticated user has a supporter role.
   bool get isSupporter => _currentUserRole == 'supporter';
 
-  /// Initializes the view model by fetching the current user's profile and then the ticket messages.
+  @override
+  void dispose() {
+    // Critical: Clean up the timer when the screen is closed to prevent background API spam
+    _supportTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> initialize() async {
     _isLoading = true;
     _errorMessage = null;
@@ -48,10 +54,7 @@ class TicketDetailsViewModel extends ChangeNotifier {
 
     try {
       final profileResponse = await profileRepository.getProfile();
-      
-      final profileData = profileResponse.containsKey('data') 
-          ? profileResponse['data'] 
-          : profileResponse;
+      final profileData = profileResponse.containsKey('data') ? profileResponse['data'] : profileResponse;
       
       if (profileData != null) {
         if (profileData['id'] != null) {
@@ -67,6 +70,7 @@ class TicketDetailsViewModel extends ChangeNotifier {
       _errorMessage = 'Failed to initialize chat: ${e.toString().replaceAll('Exception: ', '')}';
     } finally {
       _isLoading = false;
+      _evaluateTimer(); 
       notifyListeners();
     }
   }
@@ -82,9 +86,7 @@ class TicketDetailsViewModel extends ChangeNotifier {
   }
 
   Future<bool> sendMessage(String? messageText, {File? attachment}) async {
-    if ((messageText == null || messageText.trim().isEmpty) && attachment == null) {
-      return false;
-    }
+    if ((messageText == null || messageText.trim().isEmpty) && attachment == null) return false;
 
     _isSending = true;
     _errorMessage = null;
@@ -122,29 +124,70 @@ class TicketDetailsViewModel extends ChangeNotifier {
       _errorMessage = 'Failed to update status: ${e.toString().replaceAll('Exception: ', '')}';
     } finally {
       _isUpdatingStatus = false;
+      _evaluateTimer(); 
       notifyListeners();
     }
   }
 
-  /// Claims the ticket for the current supporter
   Future<void> claimTicket() async {
     _isClaiming = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      // Passa um mapa vazio pois o endpoint apenas exige o ID no URL
       final response = await ticketRepository.assignTicket(ticket.id, {});
-      
-      // Atualiza o ticket atual com os dados devolvidos (que agora incluem o assignee)
       final updatedData = response.containsKey('data') ? response['data'] : response;
       ticket = Ticket.fromJson(updatedData as Map<String, dynamic>);
-      
     } catch (e) {
       _errorMessage = 'Falha ao reivindicar: ${e.toString().replaceAll('Exception: ', '')}';
     } finally {
       _isClaiming = false;
+      _evaluateTimer(); 
       notifyListeners();
     }
+  }
+
+  /// Evaluates whether the background support timer should be running.
+  void _evaluateTimer() {
+    final bool shouldRun = isSupporter &&
+        ticket.status == 'in_progress' &&
+        ticket.assigneeId == _currentUserId;
+
+    if (shouldRun && _supportTimer == null) {
+      // Fires immediately to show the timer instantly on screen, then triggers every 5 secs
+      _tickTime();
+      _supportTimer = Timer.periodic(const Duration(seconds: 5), (_) => _tickTime());
+    } else if (!shouldRun && _supportTimer != null) {
+      _supportTimer?.cancel();
+      _supportTimer = null;
+    }
+  }
+
+  /// Sends the background tick to the API and updates local UI.
+  Future<void> _tickTime() async {
+    try {
+      final response = await ticketRepository.tickTime(ticket.id, {});
+      final data = response.containsKey('data') ? response['data'] : response;
+
+      if (data != null && data['remaining_seconds'] != null) {
+        final int seconds = data['remaining_seconds'] as int;
+        final formattedTime = _formatSeconds(seconds);
+
+        ticket = ticket.copyWith(supportTime: formattedTime);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Support timer tick failed: $e');
+    }
+  }
+
+  /// Helper to convert raw seconds back to HH:MM:SS format
+  String _formatSeconds(int totalSeconds) {
+    if (totalSeconds < 0) totalSeconds = 0;
+    final hours = totalSeconds ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
+    final seconds = totalSeconds % 60;
+    
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 }

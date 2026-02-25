@@ -26,7 +26,7 @@ class Ticket {
   });
 
   factory Ticket.fromJson(Map<String, dynamic> json) {
-    // Tenta extrair a descrição tanto da chave 'description' como 'message' (dependendo do endpoint)
+    // Tries to extract description from both endpoints
     final String description = json['description'] ?? json['message'] as String? ?? 'Sem descrição';
 
     return Ticket(
@@ -39,13 +39,39 @@ class Ticket {
           : DateTime.now(),
       supportTime: json['support_time']?.toString(),
       
-      // Mapeia os dados do cliente
       customerName: json['customer']?['name'] as String?,
       customerId: json['customer']?['id'] as int?,
       
-      // Lê os dados do suporte a partir da chave 'support' que agora já virá preenchida pela API
       assigneeName: json['support']?['name'] as String?,
-      assigneeId: json['support']?['id'] as int?,
+      // Reads directly from 'assigned_to' injected in our Laravel API Resource
+      assigneeId: json['assigned_to'] as int? ?? json['support']?['id'] as int?,
+    );
+  }
+
+  /// Creates a copy of this Ticket but with the given fields replaced with the new values.
+  Ticket copyWith({
+    int? id,
+    String? title,
+    String? description,
+    String? status,
+    DateTime? createdAt,
+    String? supportTime,
+    String? customerName,
+    int? customerId,
+    String? assigneeName,
+    int? assigneeId,
+  }) {
+    return Ticket(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      supportTime: supportTime ?? this.supportTime,
+      customerName: customerName ?? this.customerName,
+      customerId: customerId ?? this.customerId,
+      assigneeName: assigneeName ?? this.assigneeName,
+      assigneeId: assigneeId ?? this.assigneeId,
     );
   }
 }

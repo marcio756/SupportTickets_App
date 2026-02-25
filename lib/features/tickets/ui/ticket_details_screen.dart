@@ -7,6 +7,7 @@ import 'components/message_bubble.dart';
 import 'components/ticket_chat_input.dart';
 import 'components/ticket_status_badge.dart';
 import 'components/ticket_status_dropdown.dart';
+import 'components/support_time_display.dart';
 
 /// Screen displaying the details and conversation thread of a specific ticket.
 class TicketDetailsScreen extends StatefulWidget {
@@ -70,7 +71,6 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
     }
   }
 
-  /// Helper to render User info cleanly
   Widget _buildUserInfoRow(IconData icon, String label, String value, Color iconColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -99,7 +99,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: Text('Ticket #${widget.ticket.id}', style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('Ticket #${widget.ticket.id}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
         elevation: 1,
@@ -107,11 +107,26 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
           ListenableBuilder(
             listenable: _viewModel,
             builder: (context, _) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 16.0),
-                child: Center(
-                  child: TicketStatusBadge(status: _viewModel.ticket.status),
-                ),
+              final bool isTicketInProgress = _viewModel.ticket.status == 'in_progress';
+              final bool ticketHasAssignee = _viewModel.ticket.assigneeId != null;
+              final bool isAssignedToMe = ticketHasAssignee && _viewModel.ticket.assigneeId == _viewModel.currentUserId;
+
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Rendering the Support Time dynamically in the AppBar
+                  if (isAssignedToMe && isTicketInProgress)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: SupportTimeDisplay(supportTime: _viewModel.ticket.supportTime ?? '--:--:--'),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 16.0),
+                    child: Center(
+                      child: TicketStatusBadge(status: _viewModel.ticket.status),
+                    ),
+                  ),
+                ],
               );
             }
           ),
@@ -146,8 +161,6 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
           }
 
           final bool isTicketInProgress = _viewModel.ticket.status == 'in_progress';
-          
-          // Helper bools to make rendering logic easier to read
           final bool ticketHasAssignee = _viewModel.ticket.assigneeId != null;
           final bool isAssignedToMe = ticketHasAssignee && _viewModel.ticket.assigneeId == _viewModel.currentUserId;
 
@@ -179,7 +192,6 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                       const Divider(),
                       const SizedBox(height: 8),
 
-                      // Informação do Dono do Ticket (Cliente)
                       _buildUserInfoRow(
                         Icons.person, 
                         'Cliente', 
@@ -187,7 +199,6 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                         Colors.grey.shade600
                       ),
 
-                      // Informação do Suporte ou Botão de Reivindicar
                       if (ticketHasAssignee)
                         _buildUserInfoRow(
                           Icons.support_agent, 
@@ -213,7 +224,6 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                         ),
                       ],
 
-                      // Dropdown de Alteração de Estado (Apenas para Suportes)
                       if (_viewModel.isSupporter) ...[
                         const SizedBox(height: 12),
                         const Divider(),
@@ -237,7 +247,6 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                 ),
               ),
               
-              // Chat List
               Expanded(
                 child: _viewModel.messages.isEmpty
                     ? const Center(child: Text('Ainda não há mensagens. Comece a conversa!'))
@@ -252,7 +261,6 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                       ),
               ),
 
-              // Chat Input Area
               TicketChatInput(
                 isSending: _viewModel.isSending,
                 isEnabled: isTicketInProgress,
