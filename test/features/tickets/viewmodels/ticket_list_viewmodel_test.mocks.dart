@@ -4,6 +4,7 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i6;
+import 'dart:io' as _i7;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:supporttickets_app/core/network/api_client.dart' as _i2;
@@ -154,15 +155,24 @@ class MockTicketRepository extends _i1.Mock implements _i5.TicketRepository {
   @override
   _i6.Future<_i4.TicketMessage> sendMessage(
     int? ticketId,
-    String? message, [
+    String? message, {
     int? userId,
-  ]) =>
+    _i7.File? attachment,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#sendMessage, [ticketId, message, userId]),
+            Invocation.method(
+              #sendMessage,
+              [ticketId, message],
+              {#userId: userId, #attachment: attachment},
+            ),
             returnValue: _i6.Future<_i4.TicketMessage>.value(
               _FakeTicketMessage_2(
                 this,
-                Invocation.method(#sendMessage, [ticketId, message, userId]),
+                Invocation.method(
+                  #sendMessage,
+                  [ticketId, message],
+                  {#userId: userId, #attachment: attachment},
+                ),
               ),
             ),
           )

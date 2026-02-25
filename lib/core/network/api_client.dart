@@ -10,6 +10,9 @@ class ApiClient {
   /// Defines the key used to store the authentication token.
   static const String tokenKey = 'auth_token';
 
+  /// Base host URL of the backend (useful for resolving relative storage paths).
+  static const String hostUrl = 'http://192.168.1.69:8000';
+
   /// Initializes the API Client with required dependencies.
   ///
   /// [dio] The Dio instance used for HTTP requests.
@@ -21,7 +24,7 @@ class ApiClient {
   /// Configures base URL, timeouts, and intercepts requests to inject tokens.
   void _configureDio() {
     // Set your local or production Laravel API URL here
-    _dio.options.baseUrl = 'http://192.168.1.69:8000/api';
+    _dio.options.baseUrl = '$hostUrl/api';
     _dio.options.connectTimeout = const Duration(seconds: 10);
     _dio.options.receiveTimeout = const Duration(seconds: 10);
     _dio.options.headers = {
@@ -70,7 +73,7 @@ class ApiClient {
   /// Performs a generic POST request.
   ///
   /// [path] The API endpoint.
-  /// [data] The payload to send.
+  /// [data] The payload to send (supports FormData for file uploads).
   /// Returns a Map representing the JSON response.
   Future<Map<String, dynamic>> post(
     String path, {
@@ -119,6 +122,9 @@ class ApiClient {
   }
 
   /// Standardizes errors from the API into human-readable strings.
+  ///
+  /// [error] The DioException caught during the request.
+  /// Returns an Exception with a formatted message.
   Exception _handleError(DioException error) {
     if (error.response != null) {
       final responseData = error.response?.data;

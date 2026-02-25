@@ -61,7 +61,9 @@ void main() {
       
       when(mockProfileRepo.getProfile()).thenAnswer((_) async => {'id': 10});
       when(mockTicketRepo.getTicketMessages(any, any)).thenAnswer((_) async => []);
-      when(mockTicketRepo.sendMessage(1, 'Replying', 10)).thenAnswer((_) async => newMessage);
+      
+      // Fix: Changed positional parameter to named parameter userId: 10
+      when(mockTicketRepo.sendMessage(1, 'Replying', userId: 10)).thenAnswer((_) async => newMessage);
 
       await viewModel.initialize(); // Set user ID
 

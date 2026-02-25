@@ -116,7 +116,8 @@ void main() {
       when(mockApiClient.post('/tickets/$ticketId/messages', data: {'message': messageText}))
           .thenAnswer((_) async => mockResponse);
 
-      final result = await repository.sendMessage(ticketId, messageText, 5);
+      // Fix: Changed positional parameter to named parameter userId: 5
+      final result = await repository.sendMessage(ticketId, messageText, userId: 5);
 
       expect(result, isA<TicketMessage>());
       expect(result.message, messageText);

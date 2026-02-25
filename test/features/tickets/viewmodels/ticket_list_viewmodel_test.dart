@@ -15,6 +15,11 @@ void main() {
 
   setUp(() {
     mockRepository = MockTicketRepository();
+
+    // Stub getCustomers to prevent unhandled MissingStubError in the constructor
+    // since the ViewModel automatically calls _loadCustomers() upon initialization.
+    when(mockRepository.getCustomers()).thenAnswer((_) async => []);
+
     viewModel = TicketListViewModel(ticketRepository: mockRepository);
   });
 
@@ -30,23 +35,28 @@ void main() {
       final mockTickets = [
         Ticket(id: 1, title: 'Test', description: 'Test', status: 'open', createdAt: DateTime.now())
       ];
-      when(mockRepository.getTickets()).thenAnswer((_) async => mockTickets);
+      
+      // Match the named parameter 'filters' using anyNamed
+      when(mockRepository.getTickets(filters: anyNamed('filters')))
+          .thenAnswer((_) async => mockTickets);
 
       // Act
-      // We don't await immediately so we can check the loading state mid-flight if needed,
-      // but for standard testing we await the whole operation.
       await viewModel.loadTickets();
 
       // Assert
       expect(viewModel.isLoading, false);
       expect(viewModel.tickets.length, 1);
       expect(viewModel.errorMessage, isNull);
-      verify(mockRepository.getTickets()).called(1);
+      
+      // Verify using the same named matcher
+      verify(mockRepository.getTickets(filters: anyNamed('filters'))).called(1);
     });
 
     test('Should handle errors correctly when loading fails', () async {
       // Arrange
-      when(mockRepository.getTickets()).thenThrow(Exception('Network Error'));
+      // Match the named parameter 'filters' using anyNamed
+      when(mockRepository.getTickets(filters: anyNamed('filters')))
+          .thenThrow(Exception('Network Error'));
 
       // Act
       await viewModel.loadTickets();

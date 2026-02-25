@@ -74,7 +74,8 @@ void main() {
           .thenAnswer((_) async => mockResponse);
 
       // Act
-      final result = await repository.sendMessage(1, 'Replying...', 1);
+      // Fix: Changed positional parameter to named parameter userId: 1
+      final result = await repository.sendMessage(1, 'Replying...', userId: 1);
 
       // Assert
       expect(result.message, 'Replying...');

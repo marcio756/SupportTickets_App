@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/ticket_message.dart';
+import 'attachment_preview.dart';
 
 /// Renders a single chat bubble for a ticket message.
 /// Aligns left or right based on whether the message was sent by the current user.
@@ -65,13 +66,28 @@ class MessageBubble extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  message.message,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: isMe ? Colors.white : Colors.black87,
+                if (message.message.isNotEmpty)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      message.message,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: isMe ? Colors.white : Colors.black87,
+                      ),
+                    ),
                   ),
-                ),
+                
+                // Show attachment preview if the message contains an attachment
+                if (message.attachmentUrl != null && message.attachmentUrl!.isNotEmpty)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: AttachmentPreview(
+                      attachmentPath: message.attachmentUrl!,
+                      isFromMe: isMe,
+                    ),
+                  ),
+
                 const SizedBox(height: 4),
                 Text(
                   _formatTime(message.createdAt),

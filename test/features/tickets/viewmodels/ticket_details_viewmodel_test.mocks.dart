@@ -4,11 +4,12 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i6;
+import 'dart:io' as _i7;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:supporttickets_app/core/network/api_client.dart' as _i2;
 import 'package:supporttickets_app/features/profile/repositories/profile_repository.dart'
-    as _i7;
+    as _i8;
 import 'package:supporttickets_app/features/tickets/models/ticket.dart' as _i3;
 import 'package:supporttickets_app/features/tickets/models/ticket_message.dart'
     as _i4;
@@ -156,15 +157,24 @@ class MockTicketRepository extends _i1.Mock implements _i5.TicketRepository {
   @override
   _i6.Future<_i4.TicketMessage> sendMessage(
     int? ticketId,
-    String? message, [
+    String? message, {
     int? userId,
-  ]) =>
+    _i7.File? attachment,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#sendMessage, [ticketId, message, userId]),
+            Invocation.method(
+              #sendMessage,
+              [ticketId, message],
+              {#userId: userId, #attachment: attachment},
+            ),
             returnValue: _i6.Future<_i4.TicketMessage>.value(
               _FakeTicketMessage_2(
                 this,
-                Invocation.method(#sendMessage, [ticketId, message, userId]),
+                Invocation.method(
+                  #sendMessage,
+                  [ticketId, message],
+                  {#userId: userId, #attachment: attachment},
+                ),
               ),
             ),
           )
@@ -187,7 +197,7 @@ class MockTicketRepository extends _i1.Mock implements _i5.TicketRepository {
 /// A class which mocks [ProfileRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockProfileRepository extends _i1.Mock implements _i7.ProfileRepository {
+class MockProfileRepository extends _i1.Mock implements _i8.ProfileRepository {
   MockProfileRepository() {
     _i1.throwOnMissingStub(this);
   }

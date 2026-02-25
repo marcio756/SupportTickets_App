@@ -4,6 +4,7 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i7;
+import 'dart:io' as _i9;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:shared_preferences/shared_preferences.dart' as _i3;
@@ -11,7 +12,7 @@ import 'package:supporttickets_app/core/network/api_client.dart' as _i2;
 import 'package:supporttickets_app/features/auth/repositories/auth_repository.dart'
     as _i6;
 import 'package:supporttickets_app/features/profile/repositories/profile_repository.dart'
-    as _i9;
+    as _i10;
 import 'package:supporttickets_app/features/tickets/models/ticket.dart' as _i4;
 import 'package:supporttickets_app/features/tickets/models/ticket_message.dart'
     as _i5;
@@ -333,15 +334,24 @@ class MockTicketRepository extends _i1.Mock implements _i8.TicketRepository {
   @override
   _i7.Future<_i5.TicketMessage> sendMessage(
     int? ticketId,
-    String? message, [
+    String? message, {
     int? userId,
-  ]) =>
+    _i9.File? attachment,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#sendMessage, [ticketId, message, userId]),
+            Invocation.method(
+              #sendMessage,
+              [ticketId, message],
+              {#userId: userId, #attachment: attachment},
+            ),
             returnValue: _i7.Future<_i5.TicketMessage>.value(
               _FakeTicketMessage_3(
                 this,
-                Invocation.method(#sendMessage, [ticketId, message, userId]),
+                Invocation.method(
+                  #sendMessage,
+                  [ticketId, message],
+                  {#userId: userId, #attachment: attachment},
+                ),
               ),
             ),
           )
@@ -364,7 +374,7 @@ class MockTicketRepository extends _i1.Mock implements _i8.TicketRepository {
 /// A class which mocks [ProfileRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockProfileRepository extends _i1.Mock implements _i9.ProfileRepository {
+class MockProfileRepository extends _i1.Mock implements _i10.ProfileRepository {
   MockProfileRepository() {
     _i1.throwOnMissingStub(this);
   }

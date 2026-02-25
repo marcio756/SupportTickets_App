@@ -1,4 +1,3 @@
-
 /// Represents a individual message within a ticket's conversation thread.
 class TicketMessage {
   final int id;
@@ -6,28 +5,35 @@ class TicketMessage {
   final String userName;
   final DateTime createdAt;
   final bool isFromMe;
+  final String? attachmentUrl;
 
+  /// Initializes a new TicketMessage instance.
   TicketMessage({
     required this.id,
     required this.message,
     required this.userName,
     required this.createdAt,
     required this.isFromMe,
+    this.attachmentUrl,
   });
 
   /// Maps the API response to our Dart model with multi-key support.
+  /// 
+  /// [json] The map containing the API data.
+  /// [currentUserId] Used to determine if the message belongs to the current user.
+  /// Returns a configured [TicketMessage] instance.
   factory TicketMessage.fromJson(Map<String, dynamic> json, int currentUserId) {
-    // Procura o utilizador em 'sender', 'user' ou 'customer' de forma flexível
+    // Looks for user data in flexible keys depending on API variations
     final userData = (json['sender'] ?? json['user'] ?? json['customer']) as Map<String, dynamic>?;
 
     return TicketMessage(
       id: json['id'] as int,
-      message: json['message'] as String,
-      // Se encontrar o objeto, usa o nome; caso contrário, 'System'
+      // Provide a fallback empty string for messages that only contain attachments
+      message: json['message'] as String? ?? '',
       userName: userData?['name'] as String? ?? 'System',
       createdAt: DateTime.parse(json['created_at'] as String),
-      // Verifica a propriedade 'id' dentro do objeto de utilizador encontrado
       isFromMe: userData != null && userData['id'] == currentUserId,
+      attachmentUrl: json['attachment_url'] as String?,
     );
   }
 }

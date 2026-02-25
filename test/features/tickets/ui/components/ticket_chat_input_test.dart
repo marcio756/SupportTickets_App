@@ -11,7 +11,8 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: TicketChatInput(
-              onSendMessage: (text) async {
+              // Fix: Added the file parameter to match the new signature
+              onSendMessage: (text, file) async {
                 callbackFired = true;
               },
             ),
@@ -19,7 +20,7 @@ void main() {
         ),
       );
 
-      final sendButton = find.byType(IconButton);
+      final sendButton = find.byType(IconButton).last; // Pega no botão de enviar
       await tester.tap(sendButton);
       await tester.pump();
 
@@ -27,13 +28,14 @@ void main() {
     });
 
     testWidgets('Should fire onSendMessage and clear text on success', (WidgetTester tester) async {
-      String sentText = '';
+      String? sentText = '';
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: TicketChatInput(
-              onSendMessage: (text) async {
+              // Fix: Added the file parameter and adjusted the string assignment
+              onSendMessage: (text, file) async {
                 sentText = text;
               },
             ),
@@ -45,8 +47,8 @@ void main() {
       await tester.enterText(find.byType(TextField), 'Hello Support');
       await tester.pump();
 
-      // Tap Send
-      await tester.tap(find.byType(IconButton));
+      // Tap Send (last IconButton is the send button)
+      await tester.tap(find.byType(IconButton).last);
       await tester.pumpAndSettle();
 
       expect(sentText, 'Hello Support');

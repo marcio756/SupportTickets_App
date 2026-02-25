@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
 import '../models/ticket.dart';
 import '../models/ticket_message.dart';
@@ -115,16 +117,29 @@ class TicketRepository {
     return Ticket.fromJson(data as Map<String, dynamic>);
   }
 
-  /// Sends a new message within a specific ticket thread.
+  /// Sends a new message within a specific ticket thread, optionally with an attachment.
   /// 
   /// [ticketId] The unique identifier of the ticket.
-  /// [message] The message content.
+  /// [message] The message content (can be null if sending only an attachment).
   /// [userId] Optional current user ID to determine message ownership.
+  /// [attachment] Optional file to be uploaded.
   /// Returns the newly created [TicketMessage].
-  Future<TicketMessage> sendMessage(int ticketId, String message, [int? userId]) async {
+  Future<TicketMessage> sendMessage(int ticketId, String? message, {int? userId, File? attachment}) async {
+    dynamic payload;
+
+    if (attachment != null) {
+      final String fileName = attachment.path.split('/').last;
+      payload = FormData.fromMap({
+        if (message != null && message.trim().isNotEmpty) 'message': message.trim(),
+        'attachment': await MultipartFile.fromFile(attachment.path, filename: fileName),
+      });
+    } else {
+      payload = {'message': message};
+    }
+
     final Map<String, dynamic> response = await apiClient.post(
       '/tickets/$ticketId/messages', 
-      data: {'message': message}
+      data: payload
     );
     
     final ticketData = response.containsKey('data') ? response['data'] : response;

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/ticket.dart';
 import '../models/ticket_message.dart';
@@ -72,18 +73,28 @@ class TicketDetailsViewModel extends ChangeNotifier {
     }
   }
 
-  /// Sends a new message to the ticket thread.
+  /// Sends a new message (text and/or attachment) to the ticket thread.
   ///
-  /// [messageText] The content of the message.
-  Future<bool> sendMessage(String messageText) async {
-    if (messageText.trim().isEmpty) return false;
+  /// [messageText] The optional text content of the message.
+  /// [attachment] The optional file attachment.
+  /// Returns a boolean indicating success.
+  Future<bool> sendMessage(String? messageText, {File? attachment}) async {
+    // Prevent sending completely empty messages
+    if ((messageText == null || messageText.trim().isEmpty) && attachment == null) {
+      return false;
+    }
 
     _isSending = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final newMessage = await ticketRepository.sendMessage(ticket.id, messageText, _currentUserId);
+      final newMessage = await ticketRepository.sendMessage(
+        ticket.id, 
+        messageText, 
+        userId: _currentUserId,
+        attachment: attachment,
+      );
       
       // Append the new message to the list to update the UI instantly
       _messages.add(newMessage);

@@ -169,8 +169,8 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
               TicketChatInput(
                 isSending: _viewModel.isSending,
                 isEnabled: isTicketInProgress,
-                onSendMessage: (text) async {
-                  await _viewModel.sendMessage(text);
+                onSendMessage: (text, attachment) async {
+                  await _viewModel.sendMessage(text, attachment: attachment);
                 },
               ),
             ],
