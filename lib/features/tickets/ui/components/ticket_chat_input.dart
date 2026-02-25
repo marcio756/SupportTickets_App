@@ -8,10 +8,14 @@ class TicketChatInput extends StatefulWidget {
   /// Indicates if a message is currently being sent, disabling the input.
   final bool isSending;
 
+  /// Indicates if the input is globally enabled (e.g. ticket is not closed).
+  final bool isEnabled;
+
   const TicketChatInput({
     super.key,
     required this.onSendMessage,
     this.isSending = false,
+    this.isEnabled = true,
   });
 
   @override
@@ -23,7 +27,7 @@ class _TicketChatInputState extends State<TicketChatInput> {
 
   void _submit() {
     final text = _controller.text.trim();
-    if (text.isNotEmpty && !widget.isSending) {
+    if (text.isNotEmpty && !widget.isSending && widget.isEnabled) {
       widget.onSendMessage(text);
       _controller.clear();
     }
@@ -37,6 +41,8 @@ class _TicketChatInputState extends State<TicketChatInput> {
 
   @override
   Widget build(BuildContext context) {
+    final bool canInteract = !widget.isSending && widget.isEnabled;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
       decoration: BoxDecoration(
@@ -56,25 +62,27 @@ class _TicketChatInputState extends State<TicketChatInput> {
             Expanded(
               child: TextField(
                 controller: _controller,
-                enabled: !widget.isSending,
+                enabled: canInteract,
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => _submit(),
                 decoration: InputDecoration(
-                  hintText: 'Escreva uma mensagem...',
+                  hintText: widget.isEnabled 
+                      ? 'Escreva uma mensagem...' 
+                      : 'O ticket não está In Progress.',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24.0),
                     borderSide: BorderSide.none,
                   ),
                   filled: true,
-                  fillColor: Colors.grey.shade100,
+                  fillColor: canInteract ? Colors.grey.shade100 : Colors.grey.shade200,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
               ),
             ),
             const SizedBox(width: 8),
             Container(
-              decoration: const BoxDecoration(
-                color: Colors.blueAccent,
+              decoration: BoxDecoration(
+                color: widget.isEnabled ? Colors.blueAccent : Colors.grey,
                 shape: BoxShape.circle,
               ),
               child: IconButton(
@@ -88,7 +96,7 @@ class _TicketChatInputState extends State<TicketChatInput> {
                         ),
                       )
                     : const Icon(Icons.send, color: Colors.white, size: 20),
-                onPressed: widget.isSending ? null : _submit,
+                onPressed: canInteract ? _submit : null,
               ),
             ),
           ],

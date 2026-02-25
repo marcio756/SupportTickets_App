@@ -124,6 +124,9 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
             );
           }
 
+          // Check if the ticket is currently in progress
+          final bool isTicketInProgress = _viewModel.ticket.status == 'in_progress';
+
           return Column(
             children: [
               // Ticket Subject/Description Header
@@ -140,7 +143,6 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      // Removed the dead null check since description is non-nullable in Dart model
                       _viewModel.ticket.description,
                       style: const TextStyle(color: Colors.black87),
                     ),
@@ -166,6 +168,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
               // Chat Input Area
               TicketChatInput(
                 isSending: _viewModel.isSending,
+                isEnabled: isTicketInProgress,
                 onSendMessage: (text) async {
                   await _viewModel.sendMessage(text);
                 },

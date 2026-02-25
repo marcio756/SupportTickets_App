@@ -95,6 +95,42 @@ class _TicketCreateScreenState extends State<TicketCreateScreen> {
                   ),
                   const SizedBox(height: 16),
                   
+                  // Customer Selection Dropdown (Only visible if the user is a supporter and customers were loaded)
+                  if (_viewModel.isLoadingCustomers)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 16.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (_viewModel.customers.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: DropdownButtonFormField<int>(
+                        // CORREÇÃO: Utilização de initialValue em vez do depreciado value
+                        initialValue: _viewModel.selectedCustomerId,
+                        decoration: InputDecoration(
+                          labelText: 'Selecione o Cliente (Atribuição do Ticket)',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                        ),
+                        items: _viewModel.customers.map((customer) {
+                          return DropdownMenuItem<int>(
+                            value: customer['id'] as int,
+                            child: Text(customer['name'] as String),
+                          );
+                        }).toList(),
+                        onChanged: _viewModel.isLoading ? null : (value) {
+                          _viewModel.setSelectedCustomer(value);
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Por favor, selecione um cliente.';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+
                   // Title Input
                   TextFormField(
                     controller: _titleController,

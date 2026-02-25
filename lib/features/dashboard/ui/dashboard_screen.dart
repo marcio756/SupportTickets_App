@@ -4,6 +4,7 @@ import '../../auth/ui/login_screen.dart';
 import '../../tickets/repositories/ticket_repository.dart';
 import '../../profile/repositories/profile_repository.dart';
 import '../../tickets/ui/components/ticket_card.dart';
+import '../../tickets/components/ticket_filters_bottom_sheet.dart';
 import '../../tickets/ui/ticket_create_screen.dart';
 import '../../tickets/ui/ticket_details_screen.dart';
 import '../../tickets/viewmodels/ticket_list_viewmodel.dart';
@@ -48,15 +49,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   /// Handles the user logout process and navigation robustly.
   Future<void> _handleLogout(BuildContext context) async {
     try {
-      // Attempt to invalidate session on the server
       await widget.authRepository.logout();
     } catch (e) {
-      // Silent catch: If the API fails (no network, timeout, CORS), 
-      // we don't care. The AuthRepository already deleted the token locally 
-      // in its 'finally' block. We just need to route the user out.
       debugPrint('API Logout failed, forcing local logout: $e');
     } finally {
-      // Always route to login safely
       if (context.mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
@@ -71,6 +67,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  /// Opens the filter bottom sheet.
+  void _openFilters() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: TicketFiltersBottomSheet(viewModel: _viewModel),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -79,11 +88,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: const Text('My Tickets', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
-        elevation: 1,
+        elevation: 0, // Removing elevation to blend with search bar
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _viewModel.loadTickets,
+            icon: const Icon(Icons.filter_list_rounded),
+            onPressed: _openFilters,
           ),
           IconButton(
             icon: const Icon(Icons.logout_rounded),
@@ -95,62 +104,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: ListenableBuilder(
         listenable: _viewModel,
         builder: (context, _) {
-          if (_viewModel.isLoading && _viewModel.tickets.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (_viewModel.errorMessage != null && _viewModel.tickets.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline, size: 60, color: Colors.redAccent),
-                    const SizedBox(height: 16),
-                    const Text('Failed to load tickets', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Text(_viewModel.errorMessage!, textAlign: TextAlign.center),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: _viewModel.loadTickets, 
-                      child: const Text('Try Again')
+          return Column(
+            children: [
+              // Search Bar
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search tickets...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide.none,
                     ),
-                  ],
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                  ),
+                  onSubmitted: (value) => _viewModel.setSearchQuery(value),
                 ),
               ),
-            );
-          }
 
-          if (_viewModel.tickets.isEmpty) {
-            return const Center(
-              child: Text('You have no tickets yet.', style: TextStyle(color: Colors.grey))
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: _viewModel.loadTickets,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16.0),
-              itemCount: _viewModel.tickets.length,
-              itemBuilder: (context, index) {
-                final ticket = _viewModel.tickets[index];
-                return TicketCard(
-                  ticket: ticket,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => TicketDetailsScreen(
-                          ticket: ticket,
-                          ticketRepository: widget.ticketRepository,
-                          profileRepository: widget.profileRepository,
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+              // Content Area
+              Expanded(
+                child: _buildContent(),
+              ),
+            ],
           );
         },
       ),
@@ -168,6 +148,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
         backgroundColor: Colors.blueAccent,
         child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  /// Builds the main content area based on the view model state.
+  Widget _buildContent() {
+    if (_viewModel.isLoading && _viewModel.tickets.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_viewModel.errorMessage != null && _viewModel.tickets.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 60, color: Colors.redAccent),
+              const SizedBox(height: 16),
+              const Text('Failed to load tickets', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(_viewModel.errorMessage!, textAlign: TextAlign.center),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _viewModel.loadTickets, 
+                child: const Text('Try Again')
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_viewModel.tickets.isEmpty) {
+      return const Center(
+        child: Text('You have no tickets matching the criteria.', style: TextStyle(color: Colors.grey))
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _viewModel.loadTickets,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16.0),
+        itemCount: _viewModel.tickets.length,
+        itemBuilder: (context, index) {
+          final ticket = _viewModel.tickets[index];
+          return TicketCard(
+            ticket: ticket,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => TicketDetailsScreen(
+                    ticket: ticket,
+                    ticketRepository: widget.ticketRepository,
+                    profileRepository: widget.profileRepository,
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }

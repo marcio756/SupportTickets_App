@@ -239,9 +239,19 @@ class MockTicketRepository extends _i1.Mock implements _i8.TicketRepository {
           as _i2.ApiClient);
 
   @override
-  _i7.Future<List<_i4.Ticket>> getTickets() =>
+  _i7.Future<List<Map<String, dynamic>>> getCustomers() =>
       (super.noSuchMethod(
-            Invocation.method(#getTickets, []),
+            Invocation.method(#getCustomers, []),
+            returnValue: _i7.Future<List<Map<String, dynamic>>>.value(
+              <Map<String, dynamic>>[],
+            ),
+          )
+          as _i7.Future<List<Map<String, dynamic>>>);
+
+  @override
+  _i7.Future<List<_i4.Ticket>> getTickets({Map<String, dynamic>? filters}) =>
+      (super.noSuchMethod(
+            Invocation.method(#getTickets, [], {#filters: filters}),
             returnValue: _i7.Future<List<_i4.Ticket>>.value(<_i4.Ticket>[]),
           )
           as _i7.Future<List<_i4.Ticket>>);
@@ -270,13 +280,25 @@ class MockTicketRepository extends _i1.Mock implements _i8.TicketRepository {
           as _i7.Future<List<_i5.TicketMessage>>);
 
   @override
-  _i7.Future<_i4.Ticket> createTicket(String? title, String? description) =>
+  _i7.Future<_i4.Ticket> createTicket(
+    String? title,
+    String? description, {
+    int? customerId,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#createTicket, [title, description]),
+            Invocation.method(
+              #createTicket,
+              [title, description],
+              {#customerId: customerId},
+            ),
             returnValue: _i7.Future<_i4.Ticket>.value(
               _FakeTicket_2(
                 this,
-                Invocation.method(#createTicket, [title, description]),
+                Invocation.method(
+                  #createTicket,
+                  [title, description],
+                  {#customerId: customerId},
+                ),
               ),
             ),
           )
