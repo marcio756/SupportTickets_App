@@ -3,19 +3,22 @@ import '../../auth/repositories/auth_repository.dart';
 import '../../auth/ui/login_screen.dart';
 import '../../tickets/models/ticket.dart';
 import '../../tickets/repositories/ticket_repository.dart';
+import '../../profile/repositories/profile_repository.dart';
 import '../../tickets/ui/components/ticket_card.dart';
-import '../../tickets/ui/ticket_create_screen.dart'; // IMPORT ADICIONADO
+import '../../tickets/ui/ticket_create_screen.dart';
 import '../../tickets/ui/ticket_details_screen.dart';
 
 /// The main dashboard screen displayed after successful authentication.
 class DashboardScreen extends StatefulWidget {
   final AuthRepository authRepository;
   final TicketRepository ticketRepository;
+  final ProfileRepository profileRepository;
 
   const DashboardScreen({
     super.key,
     required this.authRepository,
     required this.ticketRepository,
+    required this.profileRepository,
   });
 
   @override
@@ -45,6 +48,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           builder: (_) => LoginScreen(
             authRepository: widget.authRepository,
             ticketRepository: widget.ticketRepository,
+            profileRepository: widget.profileRepository, // PASSAGEM ADICIONADA AQUI
           ),
         ),
       );
@@ -118,6 +122,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         builder: (_) => TicketDetailsScreen(
                           ticket: ticket,
                           ticketRepository: widget.ticketRepository,
+                          profileRepository: widget.profileRepository,
                         ),
                       ),
                     );
@@ -130,7 +135,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          // Navigation to the creation screen and awaiting the refresh signal
           final bool? shouldRefresh = await Navigator.of(context).push<bool>(
             MaterialPageRoute(
               builder: (_) => TicketCreateScreen(ticketRepository: widget.ticketRepository),

@@ -4,20 +4,26 @@ import '../models/ticket_message.dart';
 
 /// Repository responsible for handling all support ticket operations.
 class TicketRepository {
-  final ApiClient _apiClient;
+  /// The API client used to perform HTTP requests.
+  final ApiClient apiClient;
 
   /// Initializes the TicketRepository.
   ///
-  /// [_apiClient] The API client used for network requests.
-  TicketRepository(this._apiClient);
+  /// The [apiClient] parameter is required for network communication.
+  TicketRepository({required this.apiClient});
 
   /// Retrieves a list of support tickets.
   ///
   /// Returns a list of [Ticket] objects.
   Future<List<Ticket>> getTickets() async {
-    final response = await _apiClient.get('/tickets');
-    final List<dynamic> data = response.containsKey('data') ? response['data'] : response;
-    return data.map((json) => Ticket.fromJson(json)).toList();
+    final Map<String, dynamic> response = await apiClient.get('/tickets');
+    
+    // Extracts the array from the 'data' wrapper typically used in Laravel
+    final List<dynamic> dataList = response.containsKey('data') 
+        ? response['data'] 
+        : response.values.toList();
+        
+    return dataList.map((json) => Ticket.fromJson(json as Map<String, dynamic>)).toList();
   }
 
   /// Retrieves details for a specific support ticket.
@@ -25,9 +31,10 @@ class TicketRepository {
   /// [ticketId] The unique identifier of the ticket.
   /// Returns a [Ticket] object.
   Future<Ticket> getTicket(int ticketId) async {
-    final response = await _apiClient.get('/tickets/$ticketId');
+    final Map<String, dynamic> response = await apiClient.get('/tickets/$ticketId');
     final data = response.containsKey('data') ? response['data'] : response;
-    return Ticket.fromJson(data);
+    
+    return Ticket.fromJson(data as Map<String, dynamic>);
   }
 
   /// Retrieves messages for a specific support ticket.
@@ -36,10 +43,11 @@ class TicketRepository {
   /// [userId] Optional user identifier for context to define ownership.
   /// Returns a list of [TicketMessage] objects.
   Future<List<TicketMessage>> getTicketMessages(int ticketId, [int? userId]) async {
-    final response = await _apiClient.get('/tickets/$ticketId');
+    final Map<String, dynamic> response = await apiClient.get('/tickets/$ticketId');
     final data = response.containsKey('data') ? response['data'] : response;
+    
     final List<dynamic> messages = data['messages'] ?? [];
-    return messages.map((m) => TicketMessage.fromJson(m, userId ?? 0)).toList();
+    return messages.map((m) => TicketMessage.fromJson(m as Map<String, dynamic>, userId ?? 0)).toList();
   }
 
   /// Creates a new support ticket.
@@ -48,21 +56,22 @@ class TicketRepository {
   /// [description] The detailed issue description.
   /// Returns the newly created [Ticket].
   Future<Ticket> createTicket(String title, String description) async {
-    final response = await _apiClient.post('/tickets', data: {
+    final Map<String, dynamic> response = await apiClient.post('/tickets', data: {
       'title': title,
       'description': description,
     });
+    
     final data = response.containsKey('data') ? response['data'] : response;
-    return Ticket.fromJson(data);
+    return Ticket.fromJson(data as Map<String, dynamic>);
   }
 
   /// Assigns a ticket to a specific user/agent.
   ///
   /// [ticketId] The unique identifier of the ticket.
   /// [data] A map containing the assignee details.
-  /// Returns a Map confirming the assignment.
+  /// Returns a [Map] confirming the assignment.
   Future<Map<String, dynamic>> assignTicket(int ticketId, Map<String, dynamic> data) async {
-    return await _apiClient.post('/tickets/$ticketId/assign', data: data);
+    return await apiClient.post('/tickets/$ticketId/assign', data: data);
   }
 
   /// Updates the status of a specific ticket.
@@ -71,9 +80,13 @@ class TicketRepository {
   /// [status] The new status string to apply.
   /// Returns the updated [Ticket].
   Future<Ticket> updateTicketStatus(int ticketId, String status) async {
-    final response = await _apiClient.patch('/tickets/$ticketId/status', data: {'status': status});
+    final Map<String, dynamic> response = await apiClient.patch(
+      '/tickets/$ticketId/status', 
+      data: {'status': status}
+    );
+    
     final data = response.containsKey('data') ? response['data'] : response;
-    return Ticket.fromJson(data);
+    return Ticket.fromJson(data as Map<String, dynamic>);
   }
 
   /// Sends a new message within a specific ticket thread.
@@ -83,19 +96,21 @@ class TicketRepository {
   /// [userId] Optional user identifier for context to define ownership.
   /// Returns the created [TicketMessage].
   Future<TicketMessage> sendMessage(int ticketId, String message, [int? userId]) async {
-    final response = await _apiClient.post('/tickets/$ticketId/messages', data: {
-      'message': message,
-    });
+    final Map<String, dynamic> response = await apiClient.post(
+      '/tickets/$ticketId/messages', 
+      data: {'message': message}
+    );
+    
     final data = response.containsKey('data') ? response['data'] : response;
-    return TicketMessage.fromJson(data, userId ?? 0);
+    return TicketMessage.fromJson(data as Map<String, dynamic>, userId ?? 0);
   }
 
   /// Ticks or logs time against a specific ticket.
   ///
   /// [ticketId] The unique identifier of the ticket.
   /// [data] A map containing the time logging specifics.
-  /// Returns a Map confirming the time logged.
+  /// Returns a [Map] confirming the time logged.
   Future<Map<String, dynamic>> tickTime(int ticketId, Map<String, dynamic> data) async {
-    return await _apiClient.post('/tickets/$ticketId/tick', data: data);
+    return await apiClient.post('/tickets/$ticketId/tick', data: data);
   }
 }

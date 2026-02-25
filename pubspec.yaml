@@ -41,6 +41,8 @@ dependencies:
 
   # Local storage to persist authentication tokens securely across sessions
   shared_preferences: ^2.2.2
+  laravel_echo: ^1.0.0-beta.1
+  pusher_channels_flutter: ^2.6.0
 
 dev_dependencies:
   flutter_test:

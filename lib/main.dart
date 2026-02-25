@@ -6,6 +6,7 @@ import 'core/network/api_client.dart';
 import 'features/auth/repositories/auth_repository.dart';
 import 'features/auth/ui/login_screen.dart';
 import 'features/dashboard/ui/dashboard_screen.dart';
+import 'features/profile/repositories/profile_repository.dart';
 import 'features/tickets/repositories/ticket_repository.dart';
 
 /// Application entry point. Ensures all global dependencies are initialized
@@ -21,12 +22,14 @@ void main() async {
   // Initialize Architecture Layers
   final apiClient = ApiClient(dio, prefs);
   final authRepository = AuthRepository(apiClient, prefs);
-  final ticketRepository = TicketRepository(apiClient);
+  final ticketRepository = TicketRepository(apiClient: apiClient);
+  final profileRepository = ProfileRepository(apiClient: apiClient);
 
   runApp(
     SupportTicketsApp(
       authRepository: authRepository,
       ticketRepository: ticketRepository,
+      profileRepository: profileRepository,
       prefs: prefs,
     ),
   );
@@ -37,12 +40,14 @@ void main() async {
 class SupportTicketsApp extends StatelessWidget {
   final AuthRepository authRepository;
   final TicketRepository ticketRepository;
+  final ProfileRepository profileRepository;
   final SharedPreferences prefs;
 
   const SupportTicketsApp({
     super.key,
     required this.authRepository,
     required this.ticketRepository,
+    required this.profileRepository,
     required this.prefs,
   });
 
@@ -63,10 +68,12 @@ class SupportTicketsApp extends StatelessWidget {
           ? DashboardScreen(
               authRepository: authRepository,
               ticketRepository: ticketRepository,
+              profileRepository: profileRepository,
             )
           : LoginScreen(
               authRepository: authRepository,
               ticketRepository: ticketRepository,
+              profileRepository: profileRepository,
             ),
     );
   }

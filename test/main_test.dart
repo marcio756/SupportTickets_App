@@ -7,21 +7,24 @@ import 'package:supporttickets_app/core/network/api_client.dart';
 import 'package:supporttickets_app/features/auth/repositories/auth_repository.dart';
 import 'package:supporttickets_app/features/auth/ui/login_screen.dart';
 import 'package:supporttickets_app/features/dashboard/ui/dashboard_screen.dart';
-import 'package:supporttickets_app/features/tickets/repositories/ticket_repository.dart'; // Add this
+import 'package:supporttickets_app/features/profile/repositories/profile_repository.dart';
+import 'package:supporttickets_app/features/tickets/repositories/ticket_repository.dart';
 import 'package:supporttickets_app/main.dart';
 
-@GenerateMocks([AuthRepository, SharedPreferences, TicketRepository]) // Add TicketRepository here
+@GenerateMocks([AuthRepository, SharedPreferences, TicketRepository, ProfileRepository])
 import 'main_test.mocks.dart';
 
 void main() {
   late MockAuthRepository mockAuthRepository;
   late MockSharedPreferences mockPrefs;
-  late MockTicketRepository mockTicketRepository; // Add this
+  late MockTicketRepository mockTicketRepository;
+  late MockProfileRepository mockProfileRepository;
 
   setUp(() {
     mockAuthRepository = MockAuthRepository();
     mockPrefs = MockSharedPreferences();
-    mockTicketRepository = MockTicketRepository(); // Add this
+    mockTicketRepository = MockTicketRepository();
+    mockProfileRepository = MockProfileRepository();
   });
 
   group('SupportTicketsApp Routing Tests', () {
@@ -31,7 +34,8 @@ void main() {
       await tester.pumpWidget(
         SupportTicketsApp(
           authRepository: mockAuthRepository,
-          ticketRepository: mockTicketRepository, // Inject here
+          ticketRepository: mockTicketRepository,
+          profileRepository: mockProfileRepository, // INJEÇÃO ADICIONADA
           prefs: mockPrefs,
         ),
       );
@@ -48,7 +52,8 @@ void main() {
       await tester.pumpWidget(
         SupportTicketsApp(
           authRepository: mockAuthRepository,
-          ticketRepository: mockTicketRepository, // Inject here
+          ticketRepository: mockTicketRepository,
+          profileRepository: mockProfileRepository, // INJEÇÃO ADICIONADA
           prefs: mockPrefs,
         ),
       );

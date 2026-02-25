@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../dashboard/ui/dashboard_screen.dart';
+import '../../profile/repositories/profile_repository.dart';
 import '../../tickets/repositories/ticket_repository.dart';
 import '../repositories/auth_repository.dart';
 
@@ -11,6 +12,7 @@ import '../repositories/auth_repository.dart';
 class LoginScreen extends StatefulWidget {
   final AuthRepository authRepository;
   final TicketRepository ticketRepository;
+  final ProfileRepository profileRepository;
 
   /// Initializes the login screen with required dependencies.
   /// 
@@ -20,6 +22,7 @@ class LoginScreen extends StatefulWidget {
     super.key,
     required this.authRepository,
     required this.ticketRepository,
+    required this.profileRepository,
   });
 
   @override
@@ -70,6 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
               builder: (_) => DashboardScreen(
                 authRepository: widget.authRepository,
                 ticketRepository: widget.ticketRepository,
+                profileRepository: widget.profileRepository,
               ),
             ),
           );

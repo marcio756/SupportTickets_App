@@ -8,19 +8,22 @@ import 'package:supporttickets_app/core/widgets/custom_text_field.dart';
 import 'package:supporttickets_app/core/widgets/primary_button.dart';
 import 'package:supporttickets_app/features/auth/repositories/auth_repository.dart';
 import 'package:supporttickets_app/features/auth/ui/login_screen.dart';
+import 'package:supporttickets_app/features/profile/repositories/profile_repository.dart';
 import 'package:supporttickets_app/features/tickets/repositories/ticket_repository.dart';
 
 // Generates the mock classes for the dependencies
-@GenerateMocks([AuthRepository, TicketRepository])
+@GenerateMocks([AuthRepository, TicketRepository, ProfileRepository])
 import 'login_screen_test.mocks.dart';
 
 void main() {
   late MockAuthRepository mockAuthRepository;
   late MockTicketRepository mockTicketRepository;
+  late MockProfileRepository mockProfileRepository;
 
   setUp(() {
     mockAuthRepository = MockAuthRepository();
     mockTicketRepository = MockTicketRepository();
+    mockProfileRepository = MockProfileRepository();
   });
 
   /// Standardizes the creation of the widget under test with injected mocks.
@@ -29,6 +32,7 @@ void main() {
       home: LoginScreen(
         authRepository: mockAuthRepository,
         ticketRepository: mockTicketRepository,
+        profileRepository: mockProfileRepository, // INJEÇÃO ADICIONADA
       ),
     );
   }
