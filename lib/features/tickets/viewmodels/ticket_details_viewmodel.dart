@@ -16,8 +16,11 @@ class TicketDetailsViewModel extends ChangeNotifier {
   List<TicketMessage> _messages = [];
   bool _isLoading = false;
   bool _isSending = false;
+  bool _isUpdatingStatus = false;
+  bool _isClaiming = false; // Novo estado para o botão de reivindicar
   String? _errorMessage;
   int? _currentUserId;
+  String? _currentUserRole;
 
   /// Initializes the ViewModel with necessary repositories and the initial ticket.
   TicketDetailsViewModel({
@@ -29,8 +32,13 @@ class TicketDetailsViewModel extends ChangeNotifier {
   List<TicketMessage> get messages => _messages;
   bool get isLoading => _isLoading;
   bool get isSending => _isSending;
+  bool get isUpdatingStatus => _isUpdatingStatus;
+  bool get isClaiming => _isClaiming;
   String? get errorMessage => _errorMessage;
   int? get currentUserId => _currentUserId;
+  
+  /// Determines if the current authenticated user has a supporter role.
+  bool get isSupporter => _currentUserRole == 'supporter';
 
   /// Initializes the view model by fetching the current user's profile and then the ticket messages.
   Future<void> initialize() async {
@@ -39,20 +47,21 @@ class TicketDetailsViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. Fetch current user profile to determine 'isFromMe' for messages
       final profileResponse = await profileRepository.getProfile();
       
-      // Robust extraction: Handle standard Laravel 'data' wrapper if present
       final profileData = profileResponse.containsKey('data') 
           ? profileResponse['data'] 
           : profileResponse;
       
-      // Safely parse the ID, handling both Int and String types from the API
-      if (profileData != null && profileData['id'] != null) {
-        _currentUserId = int.tryParse(profileData['id'].toString());
+      if (profileData != null) {
+        if (profileData['id'] != null) {
+          _currentUserId = int.tryParse(profileData['id'].toString());
+        }
+        if (profileData['role'] != null) {
+          _currentUserRole = profileData['role'].toString();
+        }
       }
 
-      // 2. Fetch the messages for this ticket
       await loadMessages();
     } catch (e) {
       _errorMessage = 'Failed to initialize chat: ${e.toString().replaceAll('Exception: ', '')}';
@@ -62,7 +71,6 @@ class TicketDetailsViewModel extends ChangeNotifier {
     }
   }
 
-  /// Fetches the latest messages for the current ticket.
   Future<void> loadMessages() async {
     try {
       _messages = await ticketRepository.getTicketMessages(ticket.id, _currentUserId);
@@ -73,13 +81,7 @@ class TicketDetailsViewModel extends ChangeNotifier {
     }
   }
 
-  /// Sends a new message (text and/or attachment) to the ticket thread.
-  ///
-  /// [messageText] The optional text content of the message.
-  /// [attachment] The optional file attachment.
-  /// Returns a boolean indicating success.
   Future<bool> sendMessage(String? messageText, {File? attachment}) async {
-    // Prevent sending completely empty messages
     if ((messageText == null || messageText.trim().isEmpty) && attachment == null) {
       return false;
     }
@@ -96,7 +98,6 @@ class TicketDetailsViewModel extends ChangeNotifier {
         attachment: attachment,
       );
       
-      // Append the new message to the list to update the UI instantly
       _messages.add(newMessage);
       _isSending = false;
       notifyListeners();
@@ -109,14 +110,40 @@ class TicketDetailsViewModel extends ChangeNotifier {
     }
   }
 
-  /// Updates the status of the ticket.
   Future<void> updateStatus(String newStatus) async {
+    _isUpdatingStatus = true;
+    _errorMessage = null;
+    notifyListeners();
+
     try {
       final updatedTicket = await ticketRepository.updateTicketStatus(ticket.id, newStatus);
       ticket = updatedTicket;
-      notifyListeners();
     } catch (e) {
       _errorMessage = 'Failed to update status: ${e.toString().replaceAll('Exception: ', '')}';
+    } finally {
+      _isUpdatingStatus = false;
+      notifyListeners();
+    }
+  }
+
+  /// Claims the ticket for the current supporter
+  Future<void> claimTicket() async {
+    _isClaiming = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Passa um mapa vazio pois o endpoint apenas exige o ID no URL
+      final response = await ticketRepository.assignTicket(ticket.id, {});
+      
+      // Atualiza o ticket atual com os dados devolvidos (que agora incluem o assignee)
+      final updatedData = response.containsKey('data') ? response['data'] : response;
+      ticket = Ticket.fromJson(updatedData as Map<String, dynamic>);
+      
+    } catch (e) {
+      _errorMessage = 'Falha ao reivindicar: ${e.toString().replaceAll('Exception: ', '')}';
+    } finally {
+      _isClaiming = false;
       notifyListeners();
     }
   }

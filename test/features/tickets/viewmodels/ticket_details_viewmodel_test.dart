@@ -35,9 +35,12 @@ void main() {
   });
 
   group('TicketDetailsViewModel Tests', () {
-    test('initialize fetches profile and messages successfully', () async {
-      // Arrange
-      when(mockProfileRepo.getProfile()).thenAnswer((_) async => {'id': 10});
+    test('initialize fetches profile and correctly assigns supporter role', () async {
+      // Arrange - Include 'role': 'supporter' in the mock profile
+      when(mockProfileRepo.getProfile()).thenAnswer((_) async => {
+        'id': 10,
+        'role': 'supporter'
+      });
       when(mockTicketRepo.getTicketMessages(1, 10)).thenAnswer((_) async => [
         TicketMessage(id: 1, message: 'Hello', userName: 'Admin', createdAt: DateTime.now(), isFromMe: false)
       ]);
@@ -47,6 +50,7 @@ void main() {
 
       // Assert
       expect(viewModel.currentUserId, 10);
+      expect(viewModel.isSupporter, isTrue); // Supporter role must be parsed correctly
       expect(viewModel.messages.length, 1);
       expect(viewModel.isLoading, isFalse);
       verify(mockProfileRepo.getProfile()).called(1);
@@ -59,10 +63,9 @@ void main() {
         id: 2, message: 'Replying', userName: 'Me', createdAt: DateTime.now(), isFromMe: true
       );
       
-      when(mockProfileRepo.getProfile()).thenAnswer((_) async => {'id': 10});
+      when(mockProfileRepo.getProfile()).thenAnswer((_) async => {'id': 10, 'role': 'customer'});
       when(mockTicketRepo.getTicketMessages(any, any)).thenAnswer((_) async => []);
       
-      // Fix: Changed positional parameter to named parameter userId: 10
       when(mockTicketRepo.sendMessage(1, 'Replying', userId: 10)).thenAnswer((_) async => newMessage);
 
       await viewModel.initialize(); // Set user ID
@@ -72,6 +75,7 @@ void main() {
 
       // Assert
       expect(result, isTrue);
+      expect(viewModel.isSupporter, isFalse); // Customer should not be mapped as supporter
       expect(viewModel.messages.length, 1);
       expect(viewModel.messages.first.message, 'Replying');
       expect(viewModel.isSending, isFalse);

@@ -6,6 +6,7 @@ import '../viewmodels/ticket_details_viewmodel.dart';
 import 'components/message_bubble.dart';
 import 'components/ticket_chat_input.dart';
 import 'components/ticket_status_badge.dart';
+import 'components/ticket_status_dropdown.dart';
 
 /// Screen displaying the details and conversation thread of a specific ticket.
 class TicketDetailsScreen extends StatefulWidget {
@@ -37,12 +38,10 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
       ticket: widget.ticket,
     );
     
-    // Initialize data fetch
     _viewModel.initialize().then((_) {
       _scrollToBottom();
     });
 
-    // Add listener to automatically scroll down when new messages arrive
     _viewModel.addListener(() {
       if (!_viewModel.isSending && _viewModel.messages.isNotEmpty) {
         _scrollToBottom();
@@ -59,7 +58,6 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
 
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
-      // Adding a slight delay to ensure UI has built the new items
       Future.delayed(const Duration(milliseconds: 100), () {
         if (_scrollController.hasClients) {
           _scrollController.animateTo(
@@ -72,6 +70,30 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
     }
   }
 
+  /// Helper to render User info cleanly
+  Widget _buildUserInfoRow(IconData icon, String label, String value, Color iconColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: iconColor),
+          const SizedBox(width: 8),
+          Text(
+            '$label: ',
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(color: Colors.grey.shade800, fontSize: 13),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -82,7 +104,6 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
         foregroundColor: Colors.black87,
         elevation: 1,
         actions: [
-          // Observes only the ticket status changes
           ListenableBuilder(
             listenable: _viewModel,
             builder: (context, _) {
@@ -116,7 +137,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: _viewModel.initialize,
-                      child: const Text('Try Again'),
+                      child: const Text('Tentar Novamente'),
                     )
                   ],
                 ),
@@ -124,36 +145,102 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
             );
           }
 
-          // Check if the ticket is currently in progress
           final bool isTicketInProgress = _viewModel.ticket.status == 'in_progress';
+          
+          // Helper bools to make rendering logic easier to read
+          final bool ticketHasAssignee = _viewModel.ticket.assigneeId != null;
+          final bool isAssignedToMe = ticketHasAssignee && _viewModel.ticket.assigneeId == _viewModel.currentUserId;
 
           return Column(
             children: [
-              // Ticket Subject/Description Header
+              // Minimized Collapsible Header (ExpansionTile)
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
                 color: Colors.white,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
+                child: Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    title: Text(
                       _viewModel.ticket.title,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _viewModel.ticket.description,
-                      style: const TextStyle(color: Colors.black87),
+                    subtitle: Text(
+                      'Clique para ver detalhes e opções',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                     ),
-                  ],
+                    childrenPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0).copyWith(top: 0),
+                    expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _viewModel.ticket.description,
+                        style: const TextStyle(color: Colors.black87, fontSize: 14),
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 8),
+
+                      // Informação do Dono do Ticket (Cliente)
+                      _buildUserInfoRow(
+                        Icons.person, 
+                        'Cliente', 
+                        _viewModel.ticket.customerName ?? 'Desconhecido', 
+                        Colors.grey.shade600
+                      ),
+
+                      // Informação do Suporte ou Botão de Reivindicar
+                      if (ticketHasAssignee)
+                        _buildUserInfoRow(
+                          Icons.support_agent, 
+                          'Suporte', 
+                          isAssignedToMe ? '${_viewModel.ticket.assigneeName!} (Tu)' : _viewModel.ticket.assigneeName!, 
+                          Colors.blueAccent
+                        )
+                      else if (_viewModel.isSupporter) ...[
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blueAccent,
+                              foregroundColor: Colors.white,
+                            ),
+                            icon: _viewModel.isClaiming 
+                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                : const Icon(Icons.pan_tool, size: 18),
+                            label: const Text('Reivindicar Ticket'),
+                            onPressed: _viewModel.isClaiming ? null : _viewModel.claimTicket,
+                          ),
+                        ),
+                      ],
+
+                      // Dropdown de Alteração de Estado (Apenas para Suportes)
+                      if (_viewModel.isSupporter) ...[
+                        const SizedBox(height: 12),
+                        const Divider(),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Alterar Estado do Ticket:',
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                        const SizedBox(height: 8),
+                        TicketStatusDropdown(
+                          currentStatus: _viewModel.ticket.status,
+                          isLoading: _viewModel.isUpdatingStatus,
+                          onStatusChanged: (newStatus) {
+                            _viewModel.updateStatus(newStatus);
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                      ]
+                    ],
+                  ),
                 ),
               ),
               
               // Chat List
               Expanded(
                 child: _viewModel.messages.isEmpty
-                    ? const Center(child: Text('No messages yet. Start the conversation!'))
+                    ? const Center(child: Text('Ainda não há mensagens. Comece a conversa!'))
                     : ListView.builder(
                         controller: _scrollController,
                         padding: const EdgeInsets.all(16),
