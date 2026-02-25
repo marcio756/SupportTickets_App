@@ -1,23 +1,16 @@
 import 'package:flutter/material.dart';
-import '../../../core/widgets/custom_text_field.dart';
-import '../../../core/widgets/primary_button.dart';
-import '../../dashboard/ui/dashboard_screen.dart';
-import '../../profile/repositories/profile_repository.dart';
-import '../../tickets/repositories/ticket_repository.dart';
 import '../repositories/auth_repository.dart';
+import '../viewmodels/login_viewmodel.dart';
+import '../../dashboard/ui/dashboard_screen.dart';
+import '../../tickets/repositories/ticket_repository.dart';
+import '../../profile/repositories/profile_repository.dart';
 
-/// The authentication screen where users input their credentials.
-/// It strictly handles UI state (form validation, loading indicator) 
-/// and delegates business logic to the [AuthRepository].
+/// Screen responsible for displaying the authentication form.
 class LoginScreen extends StatefulWidget {
   final AuthRepository authRepository;
   final TicketRepository ticketRepository;
   final ProfileRepository profileRepository;
 
-  /// Initializes the login screen with required dependencies.
-  /// 
-  /// Both repositories are injected here so they can be passed down 
-  /// to the DashboardScreen upon successful authentication.
   const LoginScreen({
     super.key,
     required this.authRepository,
@@ -30,162 +23,146 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // Form key to manage validation state globally for this form
-  final _formKey = GlobalKey<FormState>();
+  late final LoginViewModel _viewModel;
   
-  // Controllers to extract text from the input fields
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  // Local state to manage the UI loading behavior
-  bool _isLoading = false;
-  String? _errorMessage;
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = LoginViewModel(authRepository: widget.authRepository);
+
+    // Listen to changes to handle navigation or show errors dynamically
+    _viewModel.addListener(_onViewModelChange);
+  }
 
   @override
   void dispose() {
-    // Always dispose controllers to prevent memory leaks
+    _viewModel.removeListener(_onViewModelChange);
+    _viewModel.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  /// Triggers the authentication process if the form is valid.
-  Future<void> _handleLogin() async {
-    // Prevent execution if form constraints are not met
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final success = await widget.authRepository.login(
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
-
-      if (success) {
-        // Navigate to the dashboard and remove login from the navigation stack
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => DashboardScreen(
-                authRepository: widget.authRepository,
-                ticketRepository: widget.ticketRepository,
-                profileRepository: widget.profileRepository,
-              ),
-            ),
-          );
-        }
-      } else {
-        setState(() {
-          _errorMessage = 'Invalid email or password.';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
-      });
-    } finally {
-      // Ensure loading state is removed regardless of the outcome
+  /// Reacts to ViewModel state changes.
+  void _onViewModelChange() {
+    if (_viewModel.isSuccess) {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        // Navigate to dashboard and prevent going back
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => DashboardScreen(
+              authRepository: widget.authRepository,
+              ticketRepository: widget.ticketRepository,
+              profileRepository: widget.profileRepository,
+            ),
+          ),
+        );
+      }
+    } else if (_viewModel.errorMessage != null && !_viewModel.isLoading) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_viewModel.errorMessage!), backgroundColor: Colors.redAccent),
+        );
       }
     }
+  }
+
+  void _submitLogin() {
+    // Hide keyboard
+    FocusScope.of(context).unfocus();
+    _viewModel.login(_emailController.text, _passwordController.text);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 48.0),
+          child: ListenableBuilder(
+            listenable: _viewModel,
+            builder: (context, _) {
+              return Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(
-                    Icons.support_agent_rounded,
-                    size: 80,
-                    color: Colors.blueAccent,
-                  ),
-                  const SizedBox(height: 32),
+                  const Icon(Icons.support_agent_rounded, size: 100, color: Colors.blueAccent),
+                  const SizedBox(height: 24),
                   const Text(
-                    'Welcome to SupportTickets',
+                    'Support Tickets',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Sign in to continue',
+                    'Inicie sessão na sua conta',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
+                    style: TextStyle(fontSize: 16, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 48),
+
+                  // Email Field
+                  TextField(
+                    controller: _emailController,
+                    enabled: !_viewModel.isLoading,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    decoration: InputDecoration(
+                      labelText: 'E-mail',
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Password Field
+                  TextField(
+                    controller: _passwordController,
+                    enabled: !_viewModel.isLoading,
+                    obscureText: true,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _submitLogin(),
+                    decoration: InputDecoration(
+                      labelText: 'Palavra-passe',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
                     ),
                   ),
                   const SizedBox(height: 32),
-                  if (_errorMessage != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.shade200),
+
+                  // Login Button
+                  SizedBox(
+                    height: 55,
+                    child: ElevatedButton(
+                      onPressed: _viewModel.isLoading ? null : _submitLogin,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
                       ),
-                      child: Text(
-                        _errorMessage!,
-                        style: TextStyle(color: Colors.red.shade700),
-                        textAlign: TextAlign.center,
-                      ),
+                      child: _viewModel.isLoading
+                          ? const SizedBox(
+                              width: 24, 
+                              height: 24, 
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                            )
+                          : const Text('Entrar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
-                    const SizedBox(height: 16),
-                  ],
-                  CustomTextField(
-                    controller: _emailController,
-                    hintText: 'Email',
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
-                      }
-                      if (!value.contains('@')) {
-                        return 'Please enter a valid email';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  CustomTextField(
-                    controller: _passwordController,
-                    hintText: 'Password',
-                    obscureText: true,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your password';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  PrimaryButton(
-                    text: 'Login',
-                    isLoading: _isLoading,
-                    onPressed: _handleLogin,
                   ),
                 ],
-              ),
-            ),
+              );
+            }
           ),
         ),
       ),

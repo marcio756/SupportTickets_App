@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 
-/// A reusable component for the chat input area.
-/// Handles text editing, state loading, and firing the send callback.
+/// A reusable chat input component for typing and sending messages.
 class TicketChatInput extends StatefulWidget {
-  final Future<void> Function(String message) onSendMessage;
+  /// Callback triggered when the user submits a message.
+  final Function(String) onSendMessage;
+  
+  /// Indicates if a message is currently being sent, disabling the input.
+  final bool isSending;
 
-  /// Initializes the chat input.
-  /// 
-  /// [onSendMessage] is an asynchronous callback triggered when the user attempts to send a message.
   const TicketChatInput({
     super.key,
     required this.onSendMessage,
+    this.isSending = false,
   });
 
   @override
@@ -18,66 +19,55 @@ class TicketChatInput extends StatefulWidget {
 }
 
 class _TicketChatInputState extends State<TicketChatInput> {
-  final TextEditingController _messageController = TextEditingController();
-  bool _isSending = false;
+  final TextEditingController _controller = TextEditingController();
+
+  void _submit() {
+    final text = _controller.text.trim();
+    if (text.isNotEmpty && !widget.isSending) {
+      widget.onSendMessage(text);
+      _controller.clear();
+    }
+  }
 
   @override
   void dispose() {
-    _messageController.dispose();
+    _controller.dispose();
     super.dispose();
-  }
-
-  /// Handles the internal state and calls the parent's callback.
-  Future<void> _handleSend() async {
-    final text = _messageController.text.trim();
-    if (text.isEmpty || _isSending) return;
-
-    setState(() => _isSending = true);
-
-    try {
-      await widget.onSendMessage(text);
-      _messageController.clear();
-    } finally {
-      if (mounted) {
-        setState(() => _isSending = false);
-      }
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
+            // ignore: deprecated_member_use
+            color: Colors.black.withOpacity(0.05),
+            offset: const Offset(0, -1),
+            blurRadius: 5,
+          )
         ],
       ),
       child: SafeArea(
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(24.0),
-                ),
-                child: TextField(
-                  controller: _messageController,
-                  minLines: 1,
-                  maxLines: 4,
-                  textInputAction: TextInputAction.newline,
-                  decoration: const InputDecoration(
-                    hintText: 'Escreva a sua mensagem...',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              child: TextField(
+                controller: _controller,
+                enabled: !widget.isSending,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => _submit(),
+                decoration: InputDecoration(
+                  hintText: 'Escreva uma mensagem...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24.0),
+                    borderSide: BorderSide.none,
                   ),
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
               ),
             ),
@@ -88,17 +78,17 @@ class _TicketChatInputState extends State<TicketChatInput> {
                 shape: BoxShape.circle,
               ),
               child: IconButton(
-                icon: _isSending
+                icon: widget.isSending
                     ? const SizedBox(
-                        width: 24,
-                        height: 24,
+                        width: 20,
+                        height: 20,
                         child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          color: Colors.white,
+                          strokeWidth: 2,
                         ),
                       )
-                    : const Icon(Icons.send_rounded, color: Colors.white),
-                onPressed: _handleSend,
+                    : const Icon(Icons.send, color: Colors.white, size: 20),
+                onPressed: widget.isSending ? null : _submit,
               ),
             ),
           ],

@@ -1,111 +1,169 @@
 import 'package:flutter/material.dart';
-import '../../../core/widgets/custom_text_field.dart';
-import '../../../core/widgets/primary_button.dart';
 import '../repositories/ticket_repository.dart';
+import '../viewmodels/ticket_create_viewmodel.dart';
 
-/// Screen allowing users to create a new support ticket.
-/// Conforms to the SRP by handling only the UI and validation for ticket creation.
+/// Screen for creating a new support ticket.
 class TicketCreateScreen extends StatefulWidget {
   final TicketRepository ticketRepository;
 
-  const TicketCreateScreen({super.key, required this.ticketRepository});
+  const TicketCreateScreen({
+    super.key,
+    required this.ticketRepository,
+  });
 
   @override
   State<TicketCreateScreen> createState() => _TicketCreateScreenState();
 }
 
 class _TicketCreateScreenState extends State<TicketCreateScreen> {
-  final _formKey = GlobalKey<FormState>();
+  late final TicketCreateViewModel _viewModel;
+  
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  bool _isSaving = false;
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = TicketCreateViewModel(ticketRepository: widget.ticketRepository);
+
+    // Listen to changes to handle navigation or show errors
+    _viewModel.addListener(_onViewModelChange);
+  }
 
   @override
   void dispose() {
+    _viewModel.removeListener(_onViewModelChange);
+    _viewModel.dispose();
     _titleController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
 
-  /// Submits the form and handles the API response.
-  Future<void> _handleSave() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isSaving = true);
-
-    try {
-      await widget.ticketRepository.createTicket(
-        _titleController.text.trim(),
-        _descriptionController.text.trim(),
-      );
-      
-      if (mounted) {
-        // Return 'true' to signal the Dashboard that it should refresh the list
-        Navigator.of(context).pop(true);
-      }
-    } catch (e) {
+  /// Reacts to ViewModel state changes.
+  void _onViewModelChange() {
+    if (_viewModel.isSuccess) {
+      // If creation is successful, pop the screen and return 'true' to trigger a refresh
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}')),
+          const SnackBar(content: Text('Ticket criado com sucesso!'), backgroundColor: Colors.green),
+        );
+        Navigator.of(context).pop(true);
+      }
+    } else if (_viewModel.errorMessage != null && !_viewModel.isLoading) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_viewModel.errorMessage!), backgroundColor: Colors.redAccent),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  void _submitForm() {
+    // Unfocus keyboard
+    FocusScope.of(context).unfocus();
+
+    if (_formKey.currentState!.validate()) {
+      _viewModel.createTicket(_titleController.text, _descriptionController.text);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Create New Ticket'),
+        title: const Text('Novo Ticket', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 1,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'How can we help you?',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Provide as much detail as possible to help our team solve your issue faster.',
-                style: TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 32),
-              CustomTextField(
-                controller: _titleController,
-                hintText: 'Subject / Title',
-                validator: (val) => val == null || val.isEmpty ? 'Title is required' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                maxLines: 6,
-                decoration: InputDecoration(
-                  hintText: 'Describe your issue in detail...',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  contentPadding: const EdgeInsets.all(16),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
+      body: ListenableBuilder(
+        listenable: _viewModel,
+        builder: (context, _) {
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Descreva o seu problema',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                ),
-                validator: (val) => val == null || val.isEmpty ? 'Description is required' : null,
+                  const SizedBox(height: 16),
+                  
+                  // Title Input
+                  TextFormField(
+                    controller: _titleController,
+                    enabled: !_viewModel.isLoading,
+                    decoration: InputDecoration(
+                      labelText: 'Título do Problema',
+                      hintText: 'Ex: Erro ao aceder à conta',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Por favor, insira um título.';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Description Input
+                  TextFormField(
+                    controller: _descriptionController,
+                    enabled: !_viewModel.isLoading,
+                    maxLines: 5,
+                    decoration: InputDecoration(
+                      labelText: 'Descrição Detalhada',
+                      hintText: 'Explique o que aconteceu passo a passo...',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      alignLabelWithHint: true,
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Por favor, insira a descrição.';
+                      }
+                      return null;
+                    },
+                  ),
+                  const Spacer(),
+                  
+                  // Submit Button
+                  SizedBox(
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _viewModel.isLoading ? null : _submitForm,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: _viewModel.isLoading
+                          ? const SizedBox(
+                              width: 24, 
+                              height: 24, 
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                            )
+                          : const Text('Enviar Ticket', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
               ),
-              const SizedBox(height: 32),
-              PrimaryButton(
-                text: 'Create Ticket',
-                isLoading: _isSaving,
-                onPressed: _handleSave,
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        }
       ),
     );
   }

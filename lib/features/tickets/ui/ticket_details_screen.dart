@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../profile/repositories/profile_repository.dart';
 import '../models/ticket.dart';
-import '../models/ticket_message.dart';
 import '../repositories/ticket_repository.dart';
+import '../../profile/repositories/profile_repository.dart';
+import '../viewmodels/ticket_details_viewmodel.dart';
 import 'components/message_bubble.dart';
 import 'components/ticket_chat_input.dart';
 import 'components/ticket_status_badge.dart';
 
-/// Screen displaying the conversation and management options for a specific ticket.
+/// Screen displaying the details and conversation thread of a specific ticket.
 class TicketDetailsScreen extends StatefulWidget {
   final Ticket ticket;
   final TicketRepository ticketRepository;
@@ -25,168 +25,153 @@ class TicketDetailsScreen extends StatefulWidget {
 }
 
 class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
+  late final TicketDetailsViewModel _viewModel;
   final ScrollController _scrollController = ScrollController();
-  
-  int? _currentUserId;
-  bool _isLoadingUser = true;
-  List<TicketMessage> _messages = [];
-  bool _isLoadingMessages = true;
 
   @override
   void initState() {
     super.initState();
-    _initializeData();
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  /// Fetches the current logged-in user to set context, then loads the chat.
-  Future<void> _initializeData() async {
-    try {
-      final profile = await widget.profileRepository.getProfile();
-      // Adjust based on your actual /me payload structure (e.g., profile['data']['id'])
-      final userData = profile.containsKey('data') ? profile['data'] : profile;
-      
-      if (mounted) {
-        setState(() {
-          _currentUserId = userData['id'] as int?;
-          _isLoadingUser = false;
-        });
-        _loadMessages();
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoadingUser = false);
-        _showError('Failed to load user session.');
-      }
-    }
-  }
-
-  /// Fetches the ticket messages from the API.
-  Future<void> _loadMessages() async {
-    if (_currentUserId == null) return;
-
-    setState(() => _isLoadingMessages = true);
-    try {
-      final messages = await widget.ticketRepository.getTicketMessages(
-        widget.ticket.id, 
-        _currentUserId,
-      );
-      if (mounted) {
-        setState(() {
-          _messages = messages;
-          _isLoadingMessages = false;
-        });
-        _scrollToBottom();
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoadingMessages = false);
-        _showError('Failed to load messages.');
-      }
-    }
-  }
-
-  /// Sends the typed message to the API and updates the UI locally for speed.
-  Future<void> _handleSendMessage(String text) async {
-    if (_currentUserId == null) return;
-
-    try {
-      final newMessage = await widget.ticketRepository.sendMessage(
-        widget.ticket.id, 
-        text, 
-        _currentUserId,
-      );
-      
-      if (mounted) {
-        setState(() {
-          _messages.add(newMessage);
-        });
-        _scrollToBottom();
-      }
-    } catch (e) {
-      _showError('Failed to send message: ${e.toString()}');
-      rethrow; // Propagate error so the Input component stops its loading state
-    }
-  }
-
-  /// Displays an error snackbar.
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+    _viewModel = TicketDetailsViewModel(
+      ticketRepository: widget.ticketRepository,
+      profileRepository: widget.profileRepository,
+      ticket: widget.ticket,
     );
-  }
+    
+    // Initialize data fetch
+    _viewModel.initialize().then((_) {
+      _scrollToBottom();
+    });
 
-  /// Scrolls the chat list to the newest message.
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+    // Add listener to automatically scroll down when new messages arrive
+    _viewModel.addListener(() {
+      if (!_viewModel.isSending && _viewModel.messages.isNotEmpty) {
+        _scrollToBottom();
       }
     });
   }
 
   @override
+  void dispose() {
+    _viewModel.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      // Adding a slight delay to ensure UI has built the new items
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(widget.ticket.title, style: const TextStyle(fontSize: 16)),
-            Text('#${widget.ticket.id}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
-          ],
-        ),
+        title: Text('Ticket #${widget.ticket.id}', style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 1,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(child: TicketStatusBadge(status: widget.ticket.status)),
+          // Observes only the ticket status changes
+          ListenableBuilder(
+            listenable: _viewModel,
+            builder: (context, _) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: Center(
+                  child: TicketStatusBadge(status: _viewModel.ticket.status),
+                ),
+              );
+            }
           ),
         ],
       ),
-      body: _isLoadingUser
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Expanded(
-                  child: _buildChatList(),
+      body: ListenableBuilder(
+        listenable: _viewModel,
+        builder: (context, _) {
+          if (_viewModel.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (_viewModel.errorMessage != null && _viewModel.messages.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.redAccent, size: 50),
+                    const SizedBox(height: 16),
+                    Text(_viewModel.errorMessage!, textAlign: TextAlign.center),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _viewModel.initialize,
+                      child: const Text('Try Again'),
+                    )
+                  ],
                 ),
-                TicketChatInput(
-                  onSendMessage: _handleSendMessage,
+              ),
+            );
+          }
+
+          return Column(
+            children: [
+              // Ticket Subject/Description Header
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                color: Colors.white,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _viewModel.ticket.title,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      // Removed the dead null check since description is non-nullable in Dart model
+                      _viewModel.ticket.description,
+                      style: const TextStyle(color: Colors.black87),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-    );
-  }
+              ),
+              
+              // Chat List
+              Expanded(
+                child: _viewModel.messages.isEmpty
+                    ? const Center(child: Text('No messages yet. Start the conversation!'))
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _viewModel.messages.length,
+                        itemBuilder: (context, index) {
+                          final message = _viewModel.messages[index];
+                          return MessageBubble(message: message);
+                        },
+                      ),
+              ),
 
-  Widget _buildChatList() {
-    if (_isLoadingMessages && _messages.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_messages.isEmpty) {
-      return const Center(
-        child: Text('No messages yet. Say hello!', style: TextStyle(color: Colors.grey)),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadMessages,
-      child: ListView.builder(
-        controller: _scrollController,
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
-        itemCount: _messages.length,
-        itemBuilder: (context, index) {
-          return MessageBubble(message: _messages[index]);
+              // Chat Input Area
+              TicketChatInput(
+                isSending: _viewModel.isSending,
+                onSendMessage: (text) async {
+                  await _viewModel.sendMessage(text);
+                },
+              ),
+            ],
+          );
         },
       ),
     );

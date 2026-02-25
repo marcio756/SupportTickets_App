@@ -18,7 +18,7 @@ void main() {
 
   group('Ticket Messages Repository Tests', () {
     test('Should parse ticket messages correctly from API', () async {
-      // Arrange - Simulating the full Ticket object response with nested 'user' object
+      // Arrange - Simulating the full Ticket object response with nested 'user'/'sender' object
       final mockData = {
         'data': {
           'id': 1,
@@ -27,7 +27,7 @@ void main() {
             {
               'id': 1, 
               'message': 'Hello', 
-              'user': {
+              'sender': {
                 'id': 1,
                 'name': 'Admin'
               }, 
@@ -51,16 +51,22 @@ void main() {
     });
 
     test('Should send message successfully', () async {
-      // Arrange - Nested 'user' object structure applied here as well
+      // Arrange - Must mimic the new Backend behavior where the whole Ticket Resource is returned
       final mockResponse = {
         'data': {
-          'id': 2, 
-          'message': 'Replying...', 
-          'user': {
-            'id': 1,
-            'name': 'Me'
-          }, 
-          'created_at': '2026-02-24T12:05:00Z'
+          'id': 1, 
+          'title': 'Test Ticket',
+          'messages': [
+            {
+              'id': 2, 
+              'message': 'Replying...', 
+              'sender': {
+                'id': 1,
+                'name': 'Me'
+              }, 
+              'created_at': '2026-02-24T12:05:00Z'
+            }
+          ]
         }
       };
 

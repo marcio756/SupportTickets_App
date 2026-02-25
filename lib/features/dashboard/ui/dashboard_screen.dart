@@ -45,19 +45,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
-  /// Handles the user logout process and navigation.
+  /// Handles the user logout process and navigation robustly.
   Future<void> _handleLogout(BuildContext context) async {
-    await widget.authRepository.logout();
-    if (context.mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => LoginScreen(
-            authRepository: widget.authRepository,
-            ticketRepository: widget.ticketRepository,
-            profileRepository: widget.profileRepository,
+    try {
+      // Attempt to invalidate session on the server
+      await widget.authRepository.logout();
+    } catch (e) {
+      // Silent catch: If the API fails (no network, timeout, CORS), 
+      // we don't care. The AuthRepository already deleted the token locally 
+      // in its 'finally' block. We just need to route the user out.
+      debugPrint('API Logout failed, forcing local logout: $e');
+    } finally {
+      // Always route to login safely
+      if (context.mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => LoginScreen(
+              authRepository: widget.authRepository,
+              ticketRepository: widget.ticketRepository,
+              profileRepository: widget.profileRepository,
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
   }
 
