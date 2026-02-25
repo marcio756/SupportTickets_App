@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../repositories/ticket_repository.dart';
 import '../viewmodels/ticket_create_viewmodel.dart';
 
+/// Screen responsible for creating a new support ticket.
 class TicketCreateScreen extends StatefulWidget {
   final TicketRepository ticketRepository;
 
@@ -41,14 +42,20 @@ class _TicketCreateScreenState extends State<TicketCreateScreen> {
     if (_viewModel.isSuccess) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ticket criado com sucesso!'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Ticket created successfully!'), 
+            backgroundColor: Colors.green
+          ),
         );
         Navigator.of(context).pop(true);
       }
     } else if (_viewModel.errorMessage != null && !_viewModel.isLoading) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_viewModel.errorMessage!), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text(_viewModel.errorMessage!), 
+            backgroundColor: Colors.redAccent
+          ),
         );
       }
     }
@@ -68,7 +75,7 @@ class _TicketCreateScreenState extends State<TicketCreateScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Novo Ticket', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('New Ticket', style: TextStyle(fontWeight: FontWeight.bold)),
         elevation: 1,
       ),
       body: ListenableBuilder(
@@ -82,8 +89,12 @@ class _TicketCreateScreenState extends State<TicketCreateScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Descreva o seu problema',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+                    'Describe your issue',
+                    style: TextStyle(
+                      fontSize: 18, 
+                      fontWeight: FontWeight.bold, 
+                      color: colorScheme.onSurface
+                    ),
                   ),
                   const SizedBox(height: 16),
                   
@@ -98,7 +109,7 @@ class _TicketCreateScreenState extends State<TicketCreateScreen> {
                       child: DropdownButtonFormField<int>(
                         initialValue: _viewModel.selectedCustomerId,
                         decoration: InputDecoration(
-                          labelText: 'Selecione o Cliente (Atribuição do Ticket)',
+                          labelText: 'Select Customer',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                           filled: true,
                           fillColor: colorScheme.surfaceContainerHighest,
@@ -113,7 +124,7 @@ class _TicketCreateScreenState extends State<TicketCreateScreen> {
                           _viewModel.setSelectedCustomer(value);
                         },
                         validator: (value) {
-                          if (value == null) return 'Por favor, selecione um cliente.';
+                          if (value == null) return 'Please select a customer.';
                           return null;
                         },
                       ),
@@ -123,14 +134,14 @@ class _TicketCreateScreenState extends State<TicketCreateScreen> {
                     controller: _titleController,
                     enabled: !_viewModel.isLoading,
                     decoration: InputDecoration(
-                      labelText: 'Título do Problema',
-                      hintText: 'Ex: Erro ao aceder à conta',
+                      labelText: 'Issue Title',
+                      hintText: 'e.g., Cannot access account',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                       filled: true,
                       fillColor: colorScheme.surfaceContainerHighest,
                     ),
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) return 'Por favor, insira um título.';
+                      if (value == null || value.trim().isEmpty) return 'Please enter a title.';
                       return null;
                     },
                   ),
@@ -141,15 +152,15 @@ class _TicketCreateScreenState extends State<TicketCreateScreen> {
                     enabled: !_viewModel.isLoading,
                     maxLines: 5,
                     decoration: InputDecoration(
-                      labelText: 'Descrição Detalhada',
-                      hintText: 'Explique o que aconteceu passo a passo...',
+                      labelText: 'Detailed Description',
+                      hintText: 'Explain the issue step by step...',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                       alignLabelWithHint: true,
                       filled: true,
                       fillColor: colorScheme.surfaceContainerHighest,
                     ),
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) return 'Por favor, insira a descrição.';
+                      if (value == null || value.trim().isEmpty) return 'Please enter a description.';
                       return null;
                     },
                   ),
@@ -167,8 +178,18 @@ class _TicketCreateScreenState extends State<TicketCreateScreen> {
                         ),
                       ),
                       child: _viewModel.isLoading
-                          ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: colorScheme.onPrimary, strokeWidth: 2))
-                          : const Text('Enviar Ticket', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          ? SizedBox(
+                              width: 24, 
+                              height: 24, 
+                              child: CircularProgressIndicator(
+                                color: colorScheme.onPrimary, 
+                                strokeWidth: 2
+                              )
+                            )
+                          : const Text(
+                              'Submit Ticket', 
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                            ),
                     ),
                   ),
                   const SizedBox(height: 24),

@@ -1,3 +1,4 @@
+/// Represents a support ticket domain model.
 class Ticket {
   final int id;
   final String title;
@@ -25,13 +26,13 @@ class Ticket {
     this.assigneeId,
   });
 
+  /// Factory constructor for creating a Ticket from a JSON map.
   factory Ticket.fromJson(Map<String, dynamic> json) {
-    // Tries to extract description from both endpoints
-    final String description = json['description'] ?? json['message'] as String? ?? 'Sem descrição';
+    final String description = json['description'] ?? json['message'] as String? ?? 'No description provided';
 
     return Ticket(
       id: json['id'] as int,
-      title: json['title'] as String? ?? 'Sem Título',
+      title: json['title'] as String? ?? 'No Title',
       description: description,
       status: json['status'] as String? ?? 'open',
       createdAt: json['created_at'] != null 
@@ -43,12 +44,11 @@ class Ticket {
       customerId: json['customer']?['id'] as int?,
       
       assigneeName: json['support']?['name'] as String?,
-      // Reads directly from 'assigned_to' injected in our Laravel API Resource
       assigneeId: json['assigned_to'] as int? ?? json['support']?['id'] as int?,
     );
   }
 
-  /// Creates a copy of this Ticket but with the given fields replaced with the new values.
+  /// Returns a copy of the ticket with updated fields.
   Ticket copyWith({
     int? id,
     String? title,

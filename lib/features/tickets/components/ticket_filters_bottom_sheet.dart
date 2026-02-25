@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../viewmodels/ticket_list_viewmodel.dart';
 
+/// Bottom sheet component for filtering the ticket list.
 class TicketFiltersBottomSheet extends StatelessWidget {
   final TicketListViewModel viewModel;
 
@@ -29,7 +30,11 @@ class TicketFiltersBottomSheet extends StatelessWidget {
                 children: [
                   Text(
                     'Filter Tickets',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
+                    style: TextStyle(
+                      fontSize: 20, 
+                      fontWeight: FontWeight.bold, 
+                      color: Theme.of(context).colorScheme.onSurface
+                    ),
                   ),
                   TextButton(
                     onPressed: () {
@@ -113,7 +118,10 @@ class TicketFiltersBottomSheet extends StatelessWidget {
                   viewModel.loadTickets();
                   Navigator.pop(context);
                 },
-                child: const Text('Apply Filters', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                child: const Text(
+                  'Apply Filters', 
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+                ),
               ),
               const SizedBox(height: 16), 
             ],

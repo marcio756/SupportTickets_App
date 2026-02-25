@@ -44,6 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  /// Listens to ViewModel state changes to handle navigation or error reporting.
   void _onViewModelChange() {
     if (_viewModel.isSuccess) {
       if (mounted) {
@@ -60,12 +61,16 @@ class _LoginScreenState extends State<LoginScreen> {
     } else if (_viewModel.errorMessage != null && !_viewModel.isLoading) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_viewModel.errorMessage!), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text(_viewModel.errorMessage!), 
+            backgroundColor: Colors.redAccent
+          ),
         );
       }
     }
   }
 
+  /// Initiates the login process by validating and sending credentials.
   void _submitLogin() {
     FocusScope.of(context).unfocus();
     _viewModel.login(_emailController.text, _passwordController.text);
@@ -85,18 +90,29 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.support_agent_rounded, size: 100, color: Theme.of(context).colorScheme.primary),
+                  Icon(
+                    Icons.support_agent_rounded, 
+                    size: 100, 
+                    color: Theme.of(context).colorScheme.primary
+                  ),
                   const SizedBox(height: 24),
                   Text(
                     'Support Tickets',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
+                    style: TextStyle(
+                      fontSize: 28, 
+                      fontWeight: FontWeight.bold, 
+                      color: Theme.of(context).colorScheme.onSurface
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Inicie sessão na sua conta',
+                    'Sign in to your account',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                      fontSize: 16, 
+                      color: Theme.of(context).colorScheme.onSurfaceVariant
+                    ),
                   ),
                   const SizedBox(height: 48),
 
@@ -106,7 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
                     decoration: InputDecoration(
-                      labelText: 'E-mail',
+                      labelText: 'Email Address',
                       prefixIcon: const Icon(Icons.email_outlined),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
@@ -122,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) => _submitLogin(),
                     decoration: InputDecoration(
-                      labelText: 'Palavra-passe',
+                      labelText: 'Password',
                       prefixIcon: const Icon(Icons.lock_outline),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
@@ -147,9 +163,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? SizedBox(
                               width: 24, 
                               height: 24, 
-                              child: CircularProgressIndicator(color: Theme.of(context).colorScheme.onPrimary, strokeWidth: 2)
+                              child: CircularProgressIndicator(
+                                color: Theme.of(context).colorScheme.onPrimary, 
+                                strokeWidth: 2
+                              )
                             )
-                          : const Text('Entrar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          : const Text(
+                              'Login', 
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+                            ),
                     ),
                   ),
                 ],

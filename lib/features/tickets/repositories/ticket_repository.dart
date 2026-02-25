@@ -5,16 +5,16 @@ import '../models/ticket.dart';
 import '../models/ticket_message.dart';
 
 /// Repository responsible for handling all support ticket operations.
+/// Acts as the single source of truth for ticket-related data.
 class TicketRepository {
   /// The API client used to perform HTTP requests.
   final ApiClient apiClient;
 
-  /// Initializes the TicketRepository.
+  /// Initializes the TicketRepository with the required [apiClient].
   TicketRepository({required this.apiClient});
 
   /// Retrieves a list of available customers for support agents.
-  /// 
-  /// Returns a [List] of [Map] containing customer 'id', 'name', and 'email'.
+  /// * Returns a [List] of [Map] containing customer details.
   Future<List<Map<String, dynamic>>> getCustomers() async {
     final Map<String, dynamic> response = await apiClient.get('/customers');
     
@@ -26,8 +26,7 @@ class TicketRepository {
   }
 
   /// Retrieves all tickets relevant to the authenticated user, optionally applying filters.
-  /// 
-  /// [filters] A map of query parameters (e.g., search, status, customers, assignees).
+  /// * [filters] A map of query parameters (e.g., search, status, customers, assignees).
   /// Returns a [List] of [Ticket] objects.
   Future<List<Ticket>> getTickets({Map<String, dynamic>? filters}) async {
     String path = '/tickets';
@@ -48,8 +47,7 @@ class TicketRepository {
   }
 
   /// Retrieves a specific ticket by its ID.
-  /// 
-  /// [ticketId] The unique identifier of the ticket.
+  /// * [ticketId] The unique identifier of the ticket.
   /// Returns a [Ticket] object.
   Future<Ticket> getTicket(int ticketId) async {
     final Map<String, dynamic> response = await apiClient.get('/tickets/$ticketId');
@@ -58,10 +56,9 @@ class TicketRepository {
     return Ticket.fromJson(data as Map<String, dynamic>);
   }
 
-  /// Retrieves all messages associated with a specific ticket.
-  /// 
-  /// [ticketId] The unique identifier of the ticket.
-  /// [userId] Optional current user ID to determine message ownership.
+  /// Retrieves all messages associated with a specific ticket thread.
+  /// * [ticketId] The unique identifier of the ticket.
+  /// [userId] Optional current user ID to determine message ownership (isFromMe).
   /// Returns a [List] of [TicketMessage] objects.
   Future<List<TicketMessage>> getTicketMessages(int ticketId, [int? userId]) async {
     final Map<String, dynamic> response = await apiClient.get('/tickets/$ticketId');
@@ -71,9 +68,8 @@ class TicketRepository {
     return messages.map((m) => TicketMessage.fromJson(m as Map<String, dynamic>, userId ?? 0)).toList();
   }
 
-  /// Creates a new support ticket.
-  /// 
-  /// [title] The subject of the ticket.
+  /// Creates a new support ticket in the system.
+  /// * [title] The subject of the ticket.
   /// [description] The detailed issue description (sent as 'message').
   /// [customerId] Optional customer ID. Required if the creator is a support agent.
   /// Returns the newly created [Ticket].
@@ -93,18 +89,16 @@ class TicketRepository {
     return Ticket.fromJson(data as Map<String, dynamic>);
   }
 
-  /// Assigns an existing ticket to a support agent.
-  /// 
-  /// [ticketId] The unique identifier of the ticket.
-  /// [data] Additional data for the assignment.
+  /// Assigns an existing ticket to the authenticated support agent.
+  /// * [ticketId] The unique identifier of the ticket.
+  /// [data] Additional data for the assignment process.
   /// Returns a [Map] containing the API response.
   Future<Map<String, dynamic>> assignTicket(int ticketId, Map<String, dynamic> data) async {
     return await apiClient.post('/tickets/$ticketId/assign', data: data);
   }
 
-  /// Updates the status of a specific ticket.
-  /// 
-  /// [ticketId] The unique identifier of the ticket.
+  /// Updates the operational status of a specific ticket.
+  /// * [ticketId] The unique identifier of the ticket.
   /// [status] The new status string (e.g., 'open', 'in_progress', 'resolved').
   /// Returns the updated [Ticket].
   Future<Ticket> updateTicketStatus(int ticketId, String status) async {
@@ -117,12 +111,11 @@ class TicketRepository {
     return Ticket.fromJson(data as Map<String, dynamic>);
   }
 
-  /// Sends a new message within a specific ticket thread, optionally with an attachment.
-  /// 
-  /// [ticketId] The unique identifier of the ticket.
-  /// [message] The message content (can be null if sending only an attachment).
-  /// [userId] Optional current user ID to determine message ownership.
-  /// [attachment] Optional file to be uploaded.
+  /// Sends a new message within a specific ticket thread, optionally including a file attachment.
+  /// * [ticketId] The unique identifier of the ticket.
+  /// [message] The message content.
+  /// [userId] Optional current user ID for ownership check.
+  /// [attachment] Optional [File] to be uploaded via FormData.
   /// Returns the newly created [TicketMessage].
   Future<TicketMessage> sendMessage(int ticketId, String? message, {int? userId, File? attachment}) async {
     dynamic payload;
@@ -150,13 +143,12 @@ class TicketRepository {
       return TicketMessage.fromJson(lastMessage as Map<String, dynamic>, userId ?? 0);
     }
     
-    throw Exception('Mensagem enviada mas não encontrada na thread do ticket.');
+    throw Exception('Message sent but not found in the ticket thread.');
   }
 
-  /// Submits a request to deduct support time for a ticket.
-  /// 
-  /// [ticketId] The unique identifier of the ticket.
-  /// [data] Additional payload data.
+  /// Submits a request to deduct or track support time for a specific ticket.
+  /// * [ticketId] The unique identifier of the ticket.
+  /// [data] Payload containing timing information.
   /// Returns a [Map] containing the API response.
   Future<Map<String, dynamic>> tickTime(int ticketId, Map<String, dynamic> data) async {
     return await apiClient.post('/tickets/$ticketId/tick', data: data);
