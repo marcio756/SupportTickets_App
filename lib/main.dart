@@ -21,7 +21,9 @@ void main() async {
   
   // Initialize Architecture Layers
   final apiClient = ApiClient(dio, prefs);
-  final authRepository = AuthRepository(apiClient, prefs);
+  
+  // Injecting dependencies using named parameters as defined in our refactored repositories
+  final authRepository = AuthRepository(apiClient: apiClient, prefs: prefs);
   final ticketRepository = TicketRepository(apiClient: apiClient);
   final profileRepository = ProfileRepository(apiClient: apiClient);
 

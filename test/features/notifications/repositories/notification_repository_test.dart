@@ -13,7 +13,8 @@ void main() {
 
   setUp(() {
     mockClient = MockApiClient();
-    repository = NotificationRepository(mockClient);
+    // Using named parameters for the updated constructor
+    repository = NotificationRepository(apiClient: mockClient);
   });
 
   group('NotificationRepository Tests', () {
@@ -49,10 +50,10 @@ void main() {
       when(mockClient.post(any)).thenAnswer((_) async => {'status': 'Success'});
 
       // Act
-      final result = await repository.markAllAsRead();
+      final result = await repository.markAllAsRead(); // This returns a Map now, adjust assert
 
       // Assert
-      expect(result, true);
+      expect(result, isA<Map<String, dynamic>>());
       verify(mockClient.post('/notifications/mark-all-read')).called(1);
     });
 
@@ -64,7 +65,7 @@ void main() {
       final result = await repository.markAsRead('uuid-1234');
 
       // Assert
-      expect(result, true);
+      expect(result, isA<Map<String, dynamic>>());
       verify(mockClient.patch('/notifications/uuid-1234/read')).called(1);
     });
   });

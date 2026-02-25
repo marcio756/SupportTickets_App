@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../auth/repositories/auth_repository.dart';
 import '../../auth/ui/login_screen.dart';
-import '../../tickets/models/ticket.dart';
 import '../../tickets/repositories/ticket_repository.dart';
 import '../../profile/repositories/profile_repository.dart';
 import '../../tickets/ui/components/ticket_card.dart';
 import '../../tickets/ui/ticket_create_screen.dart';
 import '../../tickets/ui/ticket_details_screen.dart';
+import '../../tickets/viewmodels/ticket_list_viewmodel.dart';
 
 /// The main dashboard screen displayed after successful authentication.
+/// It acts purely as a UI layer, observing the [TicketListViewModel] for state changes.
 class DashboardScreen extends StatefulWidget {
   final AuthRepository authRepository;
   final TicketRepository ticketRepository;
@@ -26,20 +27,25 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  late Future<List<Ticket>> _ticketsFuture;
+  // The ViewModel instance responsible for this screen's business logic
+  late final TicketListViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _loadTickets();
+    // Initialize the ViewModel and trigger the initial data fetch
+    _viewModel = TicketListViewModel(ticketRepository: widget.ticketRepository);
+    _viewModel.loadTickets();
   }
 
-  void _loadTickets() {
-    setState(() {
-      _ticketsFuture = widget.ticketRepository.getTickets();
-    });
+  @override
+  void dispose() {
+    // Dispose the ViewModel to prevent memory leaks
+    _viewModel.dispose();
+    super.dispose();
   }
 
+  /// Handles the user logout process and navigation.
   Future<void> _handleLogout(BuildContext context) async {
     await widget.authRepository.logout();
     if (context.mounted) {
@@ -48,7 +54,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           builder: (_) => LoginScreen(
             authRepository: widget.authRepository,
             ticketRepository: widget.ticketRepository,
-            profileRepository: widget.profileRepository, // PASSAGEM ADICIONADA AQUI
+            profileRepository: widget.profileRepository,
           ),
         ),
       );
@@ -67,7 +73,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadTickets,
+            onPressed: _viewModel.loadTickets,
           ),
           IconButton(
             icon: const Icon(Icons.logout_rounded),
@@ -75,14 +81,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<Ticket>>(
-        future: _ticketsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      // ListenableBuilder listens to the ViewModel and rebuilds the UI when notifyListeners() is called
+      body: ListenableBuilder(
+        listenable: _viewModel,
+        builder: (context, _) {
+          if (_viewModel.isLoading && _viewModel.tickets.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (snapshot.hasError) {
+          if (_viewModel.errorMessage != null && _viewModel.tickets.isEmpty) {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
@@ -93,27 +100,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 16),
                     const Text('Failed to load tickets', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-                    Text(snapshot.error.toString(), textAlign: TextAlign.center),
+                    Text(_viewModel.errorMessage!, textAlign: TextAlign.center),
                     const SizedBox(height: 24),
-                    ElevatedButton(onPressed: _loadTickets, child: const Text('Try Again')),
+                    ElevatedButton(
+                      onPressed: _viewModel.loadTickets, 
+                      child: const Text('Try Again')
+                    ),
                   ],
                 ),
               ),
             );
           }
 
-          final tickets = snapshot.data ?? [];
-          if (tickets.isEmpty) {
-            return const Center(child: Text('You have no tickets yet.', style: TextStyle(color: Colors.grey)));
+          if (_viewModel.tickets.isEmpty) {
+            return const Center(
+              child: Text('You have no tickets yet.', style: TextStyle(color: Colors.grey))
+            );
           }
 
           return RefreshIndicator(
-            onRefresh: () async => _loadTickets(),
+            onRefresh: _viewModel.loadTickets,
             child: ListView.builder(
               padding: const EdgeInsets.all(16.0),
-              itemCount: tickets.length,
+              itemCount: _viewModel.tickets.length,
               itemBuilder: (context, index) {
-                final ticket = tickets[index];
+                final ticket = _viewModel.tickets[index];
                 return TicketCard(
                   ticket: ticket,
                   onTap: () {
@@ -142,7 +153,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
           
           if (shouldRefresh == true) {
-            _loadTickets();
+            _viewModel.loadTickets();
           }
         },
         backgroundColor: Colors.blueAccent,

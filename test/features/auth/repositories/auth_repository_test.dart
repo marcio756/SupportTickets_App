@@ -17,12 +17,13 @@ void main() {
   setUp(() {
     mockApiClient = MockApiClient();
     mockPrefs = MockSharedPreferences();
-    authRepository = AuthRepository(mockApiClient, mockPrefs);
+    // Using named parameters for the updated constructor
+    authRepository = AuthRepository(apiClient: mockApiClient, prefs: mockPrefs);
   });
 
   group('AuthRepository Tests', () {
     test('Should return true and save token when login is successful', () async {
-      // Arrange - Simulating the Laravel ApiResponser structure
+      // Arrange
       const token = 'fake_jwt_token';
       when(mockApiClient.post(any, data: anyNamed('data')))
           .thenAnswer((_) async => {

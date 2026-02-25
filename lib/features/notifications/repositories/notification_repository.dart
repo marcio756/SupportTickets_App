@@ -1,39 +1,42 @@
 import '../../../core/network/api_client.dart';
 import '../models/app_notification.dart';
 
-/// Repository responsible for handling user notifications.
+/// Repository responsible for handling system and ticket notifications.
 class NotificationRepository {
-  final ApiClient _apiClient;
+  /// The API client used to perform HTTP requests.
+  final ApiClient apiClient;
 
   /// Initializes the NotificationRepository.
   ///
-  /// [_apiClient] The API client used for network requests.
-  NotificationRepository(this._apiClient);
+  /// The [apiClient] parameter is strictly required for network communication.
+  NotificationRepository({required this.apiClient});
 
-  /// Retrieves a list of notifications for the authenticated user.
+  /// Fetches a paginated list of notifications for the authenticated user.
   ///
   /// Returns a list of [AppNotification] objects.
   Future<List<AppNotification>> getNotifications() async {
-    final response = await _apiClient.get('/notifications');
-    final List<dynamic> data = response.containsKey('data') ? response['data'] : response;
+    final Map<String, dynamic> response = await apiClient.get('/notifications');
     
-    return data.map((json) => AppNotification.fromJson(json)).toList();
+    // Handles standard Laravel pagination/resource wrapping structure
+    final List<dynamic> dataList = response.containsKey('data') 
+        ? response['data'] 
+        : response.values.toList();
+        
+    return dataList.map((json) => AppNotification.fromJson(json as Map<String, dynamic>)).toList();
   }
 
-  /// Marks all current notifications as read.
+  /// Marks all unread notifications belonging to the user as read.
   ///
-  /// Returns true if the operation was successful.
-  Future<bool> markAllAsRead() async {
-    final response = await _apiClient.post('/notifications/mark-all-read');
-    return response['status'] == 'Success' || response.containsKey('message');
+  /// Returns a [Map] containing the server confirmation message.
+  Future<Map<String, dynamic>> markAllAsRead() async {
+    return await apiClient.post('/notifications/mark-all-read');
   }
 
   /// Marks a specific notification as read.
   ///
-  /// [id] The unique string identifier of the notification.
-  /// Returns true if the operation was successful.
-  Future<bool> markAsRead(String id) async {
-    final response = await _apiClient.patch('/notifications/$id/read');
-    return response['status'] == 'Success' || response.containsKey('message');
+  /// [notificationId] The unique string identifier of the notification (usually a UUID).
+  /// Returns a [Map] containing the updated notification or success status.
+  Future<Map<String, dynamic>> markAsRead(String notificationId) async {
+    return await apiClient.patch('/notifications/$notificationId/read');
   }
 }
