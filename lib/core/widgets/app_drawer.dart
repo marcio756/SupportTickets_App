@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import '../../features/auth/repositories/auth_repository.dart';
 import '../../features/profile/repositories/profile_repository.dart';
 import '../../features/tickets/repositories/ticket_repository.dart';
+import '../../features/notifications/repositories/notification_repository.dart'; // NOVO IMPORT
 import '../../features/auth/ui/login_screen.dart';
 import '../../features/tickets/ui/ticket_list_screen.dart';
 import '../../features/dashboard/ui/dashboard_screen.dart';
 import '../../features/users/ui/user_management_screen.dart';
 import '../../features/profile/ui/profile_screen.dart';
+import '../../features/notifications/ui/notifications_screen.dart';
 import '../theme/theme_controller.dart';
 
-/// Main navigation Sidebar (Drawer) of the application.
 class AppDrawer extends StatefulWidget {
   final AuthRepository authRepository;
   final TicketRepository ticketRepository;
@@ -31,14 +32,15 @@ class AppDrawer extends StatefulWidget {
 class _AppDrawerState extends State<AppDrawer> {
   String _userName = 'Loading...';
   String _userEmail = '';
+  int _unreadNotifications = 0; // Estado para a contagem do badge
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    _loadUnreadNotificationsCount(); // Inicia a contagem de notificações
   }
 
-  /// Fetches the user profile gracefully to populate the Drawer Header.
   Future<void> _loadProfile() async {
     try {
       final profile = await widget.profileRepository.getProfile();
@@ -54,12 +56,29 @@ class _AppDrawerState extends State<AppDrawer> {
     }
   }
 
-  /// Logs out the user and clears the navigation stack completely.
+  /// Busca as notificações ativas à API para determinar o número de não-lidas
+  Future<void> _loadUnreadNotificationsCount() async {
+    try {
+      final notificationRepo = NotificationRepository(apiClient: widget.authRepository.apiClient);
+      final notifications = await notificationRepo.getNotifications();
+      
+      final unreadCount = notifications.where((n) => !n.isRead).length;
+      
+      if (mounted) {
+        setState(() {
+          _unreadNotifications = unreadCount;
+        });
+      }
+    } catch (e) {
+      debugPrint('Não foi possível carregar o contador de notificações.');
+    }
+  }
+
   Future<void> _handleLogout(BuildContext context) async {
     try {
       await widget.authRepository.logout();
     } catch (e) {
-      debugPrint('Logout failed on API, forcing local cleanup: $e');
+      debugPrint('Logout failed on API: $e');
     } finally {
       if (context.mounted) {
         Navigator.of(context).pushAndRemoveUntil(
@@ -76,16 +95,11 @@ class _AppDrawerState extends State<AppDrawer> {
     }
   }
 
-
-  /// Handles internal navigation. Closes drawer if already on route.
   void _navigateTo(String route, Widget screen) {
     if (widget.currentRoute == route) {
       Navigator.pop(context);
     } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => screen),
-      );
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => screen));
     }
   }
 
@@ -98,80 +112,69 @@ class _AppDrawerState extends State<AppDrawer> {
       backgroundColor: colorScheme.surface,
       child: Column(
         children: [
-          // Wraps the header in an InkWell to make it tappable and navigate to Profile
           InkWell(
-            onTap: () => _navigateTo(
-              'Profile', 
-              ProfileScreen(
-                authRepository: widget.authRepository,
-                ticketRepository: widget.ticketRepository,
-                profileRepository: widget.profileRepository,
-              ),
-            ),
+            onTap: () => _navigateTo('Profile', ProfileScreen(
+              authRepository: widget.authRepository,
+              ticketRepository: widget.ticketRepository,
+              profileRepository: widget.profileRepository,
+            )),
             child: UserAccountsDrawerHeader(
-              accountName: Text(
-                _userName, 
-                style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onPrimary)
-              ),
-              accountEmail: Text(
-                _userEmail, 
-                style: TextStyle(color: colorScheme.onPrimary.withValues(alpha: 0.8))
-              ),
+              accountName: Text(_userName, style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onPrimary)),
+              accountEmail: Text(_userEmail, style: TextStyle(color: colorScheme.onPrimary.withValues(alpha: 0.8))),
               currentAccountPicture: CircleAvatar(
                 backgroundColor: colorScheme.onPrimary,
-                child: Text(
-                  _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
-                  style: TextStyle(fontSize: 24, color: colorScheme.primary),
-                ),
+                child: Text(_userName.isNotEmpty ? _userName[0].toUpperCase() : 'U', style: TextStyle(fontSize: 24, color: colorScheme.primary)),
               ),
-              decoration: BoxDecoration(
-                color: colorScheme.primary,
-              ),
-              margin: EdgeInsets.zero, // Removes the bottom margin so InkWell looks better
+              decoration: BoxDecoration(color: colorScheme.primary),
+              margin: EdgeInsets.zero,
             ),
           ),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.only(top: 8.0), // Adds a little spacing after the header
+              padding: const EdgeInsets.only(top: 8.0),
               children: [
                 _buildNavItem(
                   icon: Icons.dashboard_rounded,
                   title: 'Dashboard',
                   route: 'Dashboard',
-                  onTap: () => _navigateTo(
-                    'Dashboard', 
-                    DashboardScreen(
-                      authRepository: widget.authRepository,
-                      ticketRepository: widget.ticketRepository,
-                      profileRepository: widget.profileRepository,
-                    )
-                  ),
+                  onTap: () => _navigateTo('Dashboard', DashboardScreen(
+                    authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
+                  )),
                 ),
                 _buildNavItem(
                   icon: Icons.confirmation_number_rounded,
                   title: 'Tickets',
                   route: 'Tickets',
-                  onTap: () => _navigateTo(
-                    'Tickets', 
-                    TicketListScreen(
-                      authRepository: widget.authRepository,
-                      ticketRepository: widget.ticketRepository,
-                      profileRepository: widget.profileRepository,
-                    )
-                  ),
+                  onTap: () => _navigateTo('Tickets', TicketListScreen(
+                    authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
+                  )),
+                ),
+                _buildNavItem(
+                  icon: Icons.notifications_none_rounded,
+                  title: 'Notificações',
+                  route: 'Notifications',
+                  trailing: _unreadNotifications > 0 ? Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: colorScheme.error,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '$_unreadNotifications',
+                      style: TextStyle(color: colorScheme.onError, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ) : null,
+                  onTap: () => _navigateTo('Notifications', NotificationsScreen(
+                    authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
+                  )),
                 ),
                 _buildNavItem(
                   icon: Icons.people_alt_rounded,
                   title: 'Users',
                   route: 'Users',
-                  onTap: () => _navigateTo(
-                    'Users', 
-                    UserManagementScreen(
-                      authRepository: widget.authRepository,
-                      ticketRepository: widget.ticketRepository,
-                      profileRepository: widget.profileRepository,
-                    )
-                  ),
+                  onTap: () => _navigateTo('Users', UserManagementScreen(
+                    authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
+                  )),
                 ),
               ],
             ),
@@ -179,14 +182,12 @@ class _AppDrawerState extends State<AppDrawer> {
           const Divider(),
           ListenableBuilder(
             listenable: ThemeController(),
-            builder: (context, _) {
-              return SwitchListTile(
-                title: const Text('Dark Mode'),
-                secondary: Icon(themeMode ? Icons.dark_mode : Icons.light_mode),
-                value: ThemeController().isDarkMode,
-                onChanged: (value) => ThemeController().toggleTheme(),
-              );
-            }
+            builder: (context, _) => SwitchListTile(
+              title: const Text('Dark Mode'),
+              secondary: Icon(themeMode ? Icons.dark_mode : Icons.light_mode),
+              value: ThemeController().isDarkMode,
+              onChanged: (value) => ThemeController().toggleTheme(),
+            )
           ),
           ListTile(
             leading: Icon(Icons.logout_rounded, color: colorScheme.error),
@@ -199,27 +200,23 @@ class _AppDrawerState extends State<AppDrawer> {
     );
   }
 
-  /// Helper to generate visually consistent list items for navigation.
+  // Modificado para suportar o widget de trailing (o badge vermelho numérico)
   Widget _buildNavItem({
     required IconData icon, 
     required String title, 
     required String route, 
-    required VoidCallback onTap
+    required VoidCallback onTap,
+    Widget? trailing,
   }) {
     final isSelected = widget.currentRoute == route;
     final colorScheme = Theme.of(context).colorScheme;
     return ListTile(
       leading: Icon(icon, color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant),
-      title: Text(
-        title, 
-        style: TextStyle(
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? colorScheme.primary : colorScheme.onSurface,
-        )
-      ),
+      title: Text(title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? colorScheme.primary : colorScheme.onSurface)),
       selected: isSelected,
       selectedTileColor: colorScheme.primaryContainer.withValues(alpha: 0.3),
       onTap: onTap,
+      trailing: trailing,
     );
   }
 }

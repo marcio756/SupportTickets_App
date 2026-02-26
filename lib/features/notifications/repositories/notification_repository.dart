@@ -1,42 +1,50 @@
 import '../../../core/network/api_client.dart';
 import '../models/app_notification.dart';
 
-/// Repository responsible for handling system and ticket notifications.
 class NotificationRepository {
-  /// The API client used to perform HTTP requests.
   final ApiClient apiClient;
 
-  /// Initializes the NotificationRepository.
-  ///
-  /// The [apiClient] parameter is strictly required for network communication.
   NotificationRepository({required this.apiClient});
 
-  /// Fetches a paginated list of notifications for the authenticated user.
-  ///
-  /// Returns a list of [AppNotification] objects.
   Future<List<AppNotification>> getNotifications() async {
     final Map<String, dynamic> response = await apiClient.get('/notifications');
     
-    // Handles standard Laravel pagination/resource wrapping structure
-    final List<dynamic> dataList = response.containsKey('data') 
-        ? response['data'] 
-        : response.values.toList();
-        
-    return dataList.map((json) => AppNotification.fromJson(json as Map<String, dynamic>)).toList();
+    List<dynamic> rawList = [];
+
+    // Tenta encontrar a chave 'data' (Laravel Pagination ou Resource)
+    if (response.containsKey('data') && response['data'] != null) {
+      final dynamic dataField = response['data'];
+      if (dataField is List) {
+        rawList = dataField;
+      } else if (dataField is Map) {
+        rawList = dataField.values.toList();
+      }
+    } else {
+      // Caso a resposta seja um objeto JSON em que as chaves são UUIDs soltos
+      response.forEach((key, value) {
+        if (key != 'current_page' && key != 'total' && key != 'links' && value is Map) {
+          rawList.add(value);
+        }
+      });
+    }
+
+    final List<AppNotification> notifications = [];
+    
+    for (var item in rawList) {
+      if (item is Map) {
+        // Converte cada notificação usando o model 100% seguro que criámos acima
+        notifications.add(AppNotification.fromJson(Map<String, dynamic>.from(item)));
+      }
+    }
+
+    return notifications;
   }
 
-  /// Marks all unread notifications belonging to the user as read.
-  ///
-  /// Returns a [Map] containing the server confirmation message.
-  Future<Map<String, dynamic>> markAllAsRead() async {
-    return await apiClient.post('/notifications/mark-all-read');
+  Future<void> markAsRead(String notificationId) async {
+    await apiClient.patch('/notifications/$notificationId/read');
   }
 
-  /// Marks a specific notification as read.
-  ///
-  /// [notificationId] The unique string identifier of the notification (usually a UUID).
-  /// Returns a [Map] containing the updated notification or success status.
-  Future<Map<String, dynamic>> markAsRead(String notificationId) async {
-    return await apiClient.patch('/notifications/$notificationId/read');
+  Future<void> markAllAsRead() async {
+    await apiClient.post('/notifications/mark-all-read');
   }
 }

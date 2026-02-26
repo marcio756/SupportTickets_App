@@ -13,7 +13,6 @@ void main() {
 
   setUp(() {
     mockClient = MockApiClient();
-    // Using named parameters for the updated constructor
     repository = NotificationRepository(apiClient: mockClient);
   });
 
@@ -45,27 +44,25 @@ void main() {
       verify(mockClient.get('/notifications')).called(1);
     });
 
-    test('Should return true when marking all as read successfully', () async {
+    test('Should execute marking all as read successfully', () async {
       // Arrange
       when(mockClient.post(any)).thenAnswer((_) async => {'status': 'Success'});
 
-      // Act
-      final result = await repository.markAllAsRead(); // This returns a Map now, adjust assert
+      // Act - We just await the void function
+      await repository.markAllAsRead();
 
-      // Assert
-      expect(result, isA<Map<String, dynamic>>());
+      // Assert - We verify that the client was called properly
       verify(mockClient.post('/notifications/mark-all-read')).called(1);
     });
 
-    test('Should return true when marking a specific notification as read', () async {
+    test('Should execute marking a specific notification as read', () async {
       // Arrange
       when(mockClient.patch(any)).thenAnswer((_) async => {'message': 'Notification marked as read'});
 
-      // Act
-      final result = await repository.markAsRead('uuid-1234');
+      // Act - We just await the void function
+      await repository.markAsRead('uuid-1234');
 
-      // Assert
-      expect(result, isA<Map<String, dynamic>>());
+      // Assert - We verify that the client was called properly
       verify(mockClient.patch('/notifications/uuid-1234/read')).called(1);
     });
   });

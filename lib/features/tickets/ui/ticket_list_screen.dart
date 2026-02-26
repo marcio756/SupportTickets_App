@@ -8,7 +8,6 @@ import 'ticket_create_screen.dart';
 import 'ticket_details_screen.dart';
 import '../viewmodels/ticket_list_viewmodel.dart';
 import '../../../core/widgets/app_drawer.dart';
-import '../../notifications/ui/notifications_screen.dart';
 
 /// Screen responsible for listing, filtering and searching tickets.
 class TicketListScreen extends StatefulWidget {
@@ -56,15 +55,6 @@ class _TicketListScreenState extends State<TicketListScreen> {
     );
   }
 
-  /// Navigates to the notifications screen.
-  void _openNotifications() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const NotificationsScreen(),
-      )
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -79,11 +69,6 @@ class _TicketListScreenState extends State<TicketListScreen> {
         title: const Text('My Tickets', style: TextStyle(fontWeight: FontWeight.bold)),
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none_rounded),
-            tooltip: 'Notificações',
-            onPressed: _openNotifications,
-          ),
           IconButton(
             icon: const Icon(Icons.filter_list_rounded),
             tooltip: 'Filtros',

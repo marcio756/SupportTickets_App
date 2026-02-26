@@ -121,6 +121,19 @@ class ApiClient {
     }
   }
 
+  /// Performs a generic DELETE request.
+  ///
+  /// [path] The API endpoint.
+  /// Returns a Map representing the JSON response.
+  Future<Map<String, dynamic>> delete(String path) async {
+    try {
+      final response = await _dio.delete(path);
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   /// Standardizes errors from the API into human-readable strings.
   ///
   /// [error] The DioException caught during the request.

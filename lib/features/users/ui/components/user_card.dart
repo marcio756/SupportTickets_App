@@ -16,7 +16,8 @@ class UserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isSupport = userMock['role'] == 'support';
+    // Handling possible variations of the role string from backend
+    final bool isSupport = userMock['role'] == 'support' || userMock['role'] == 'supporter';
     final colorScheme = Theme.of(context).colorScheme;
 
     return Card(
@@ -33,13 +34,13 @@ class UserCard extends StatelessWidget {
           ),
         ),
         title: Text(
-          userMock['name'],
+          userMock['name'] ?? 'Unknown',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(userMock['email']),
+            Text(userMock['email'] ?? ''),
             const SizedBox(height: 4),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -50,7 +51,7 @@ class UserCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                userMock['role'].toString().toUpperCase(),
+                userMock['role']?.toString().toUpperCase() ?? 'CUSTOMER',
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
@@ -62,22 +63,25 @@ class UserCard extends StatelessWidget {
             ),
           ],
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.edit_outlined),
-              color: colorScheme.primary,
-              tooltip: 'Edit User',
-              onPressed: onEdit,
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              color: colorScheme.error,
-              tooltip: 'Delete User',
-              onPressed: onDelete,
-            ),
-          ],
+        // FittedBox prevents "Right overflowed by X pixels" on smaller screens
+        trailing: FittedBox(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                color: colorScheme.primary,
+                tooltip: 'Edit User',
+                onPressed: onEdit,
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                color: colorScheme.error,
+                tooltip: 'Delete User',
+                onPressed: onDelete,
+              ),
+            ],
+          ),
         ),
       ),
     );

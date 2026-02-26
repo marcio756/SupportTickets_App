@@ -1,12 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/widgets/app_drawer.dart';
 import '../../auth/repositories/auth_repository.dart';
 import '../../tickets/repositories/ticket_repository.dart';
 import '../../profile/repositories/profile_repository.dart';
+import '../repositories/user_repository.dart';
+import '../viewmodels/user_management_viewmodel.dart';
 import 'components/user_card.dart';
+import 'components/user_form_dialog.dart';
 
-/// Screen for support agents to manage system users.
-/// Contains searching, filtering by role, and listing users.
 class UserManagementScreen extends StatefulWidget {
   final AuthRepository authRepository;
   final TicketRepository ticketRepository;
@@ -24,34 +26,77 @@ class UserManagementScreen extends StatefulWidget {
 }
 
 class _UserManagementScreenState extends State<UserManagementScreen> {
-  String _searchQuery = '';
-  String _selectedRoleFilter = 'all';
+  late final UserManagementViewModel _viewModel;
+  Timer? _debounce;
 
-  // Mock data representing the users fetched from API
-  final List<Map<String, dynamic>> _mockUsers = [
-    {'id': '1', 'name': 'Alice Smith', 'email': 'alice@example.com', 'role': 'customer'},
-    {'id': '2', 'name': 'Bob Support', 'email': 'bob@support.com', 'role': 'support'},
-    {'id': '3', 'name': 'Charlie Brown', 'email': 'charlie@example.com', 'role': 'customer'},
-  ];
-
-  /// Filters the mock data based on search input and role dropdown.
-  List<Map<String, dynamic>> get _filteredUsers {
-    return _mockUsers.where((user) {
-      final matchesSearch = user['name'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                            user['email'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
-      final matchesRole = _selectedRoleFilter == 'all' || user['role'] == _selectedRoleFilter;
-      return matchesSearch && matchesRole;
-    }).toList();
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = UserManagementViewModel(
+      userRepository: UserRepository(apiClient: widget.authRepository.apiClient),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _viewModel.fetchUsers());
   }
 
-  void _handleEditUser(String userId) {
-    // Action pending API integration: Open edit bottom sheet or screen
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Edit user $userId tapped')));
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _viewModel.dispose();
+    super.dispose();
   }
 
-  void _handleDeleteUser(String userId) {
-    // Action pending API integration: Show confirmation dialog and call API to delete
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete user $userId tapped')));
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _viewModel.setSearchQuery(query);
+    });
+  }
+
+  void _showUserForm([Map<String, dynamic>? user]) {
+    showDialog(
+      context: context,
+      builder: (_) => UserFormDialog(
+        userMock: user,
+        onSave: (data) async {
+          final success = await _viewModel.saveUser(id: user?['id']?.toString(), data: data);
+          if (mounted && success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(user == null ? 'User created!' : 'User updated!')),
+            );
+          } else if (mounted && _viewModel.errorMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: ${_viewModel.errorMessage}', style: TextStyle(color: Theme.of(context).colorScheme.onError)), backgroundColor: Theme.of(context).colorScheme.error),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  void _confirmDelete(String id) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete User'),
+        content: const Text('Are you sure you want to delete this user?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error, foregroundColor: Theme.of(context).colorScheme.onError),
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await _viewModel.deleteUser(id);
+              if (mounted && success) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User deleted!')));
+              } else if (mounted && _viewModel.errorMessage != null) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${_viewModel.errorMessage}')));
+              }
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -59,7 +104,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manage Users', style: TextStyle(fontWeight: FontWeight.bold)),
-        elevation: 0,
       ),
       drawer: AppDrawer(
         authRepository: widget.authRepository,
@@ -67,67 +111,68 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         profileRepository: widget.profileRepository,
         currentRoute: 'Users',
       ),
-      body: Column(
-        children: [
-          _buildFilters(context),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _filteredUsers.length,
-              itemBuilder: (context, index) {
-                final user = _filteredUsers[index];
-                return UserCard(
-                  userMock: user,
-                  onEdit: () => _handleEditUser(user['id']),
-                  onDelete: () => _handleDeleteUser(user['id']),
-                );
-              },
-            ),
-          ),
-        ],
+      body: ListenableBuilder(
+        listenable: _viewModel,
+        builder: (context, _) {
+          return Column(
+            children: [
+              _buildFilters(context),
+              if (_viewModel.isLoading && _viewModel.users.isEmpty)
+                const Expanded(child: Center(child: CircularProgressIndicator()))
+              else if (_viewModel.users.isEmpty)
+                const Expanded(child: Center(child: Text('No users found.')))
+              else
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _viewModel.users.length,
+                    itemBuilder: (context, index) {
+                      final user = _viewModel.users[index];
+                      return UserCard(
+                        userMock: user,
+                        onEdit: () => _showUserForm(user),
+                        onDelete: () => _confirmDelete(user['id'].toString()),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Action pending API integration: Open create user flow
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Create user tapped')));
-        },
+        onPressed: () => _showUserForm(),
         child: const Icon(Icons.person_add),
       ),
     );
   }
 
-  /// Builds the search bar and role filter dropdown.
   Widget _buildFilters(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(
         children: [
           Expanded(
-            flex: 2,
+            flex: 5,
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Search name or email...',
                 prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
-              onChanged: (value) => setState(() => _searchQuery = value),
+              onChanged: _onSearchChanged,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            flex: 1,
+            flex: 4,
             child: DropdownButtonFormField<String>(
-              initialValue: _selectedRoleFilter,
+              isExpanded: true,
+              initialValue: _viewModel.selectedRoleFilter,
               decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16),
@@ -135,10 +180,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               items: const [
                 DropdownMenuItem(value: 'all', child: Text('All Roles')),
                 DropdownMenuItem(value: 'customer', child: Text('Customer')),
-                DropdownMenuItem(value: 'support', child: Text('Support')),
+                // Foi corrigido aqui de 'support' para 'supporter'
+                DropdownMenuItem(value: 'supporter', child: Text('Support')),
               ],
-              onChanged: (value) {
-                if (value != null) setState(() => _selectedRoleFilter = value);
+              onChanged: (v) {
+                if (v != null) _viewModel.setRoleFilter(v);
               },
             ),
           ),
