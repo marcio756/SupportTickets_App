@@ -8,6 +8,7 @@ import 'components/grouped_notification_tile.dart';
 import '../../tickets/ui/ticket_details_screen.dart';
 import '../../../core/widgets/app_drawer.dart';
 
+/// Screen responsible for displaying the list of grouped user notifications.
 class NotificationsScreen extends StatefulWidget {
   final AuthRepository authRepository;
   final TicketRepository ticketRepository;
@@ -34,7 +35,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     _viewModel = NotificationsViewModel(
       repository: NotificationRepository(apiClient: widget.authRepository.apiClient),
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) => _viewModel.fetchAndGroupNotifications());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _viewModel.fetchAndGroupNotifications();
+    });
   }
 
   @override
@@ -43,10 +46,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     super.dispose();
   }
 
-  /// Fetches the ticket details before navigating to the TicketDetailsScreen
-  Future<void> _navigateToTicket(String ticketIdStr) async {
+  /// Handles the tap event on a notification tile.
+  /// Marks the associated notifications as read and navigates to the ticket details.
+  Future<void> _handleNotificationTap(Map<String, dynamic> group) async {
     if (_isNavigating) return;
     setState(() => _isNavigating = true);
+
+    final ticketIdStr = group['ticketId'] as String;
+    final notificationIds = List<String>.from(group['notificationIds']);
+
+    // Trigger marking as read in the background without blocking navigation
+    _viewModel.markGroupAsRead(notificationIds);
 
     try {
       final ticketId = int.parse(ticketIdStr);
@@ -85,6 +95,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notificações', style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.done_all),
+            tooltip: 'Marcar todas como lidas',
+            onPressed: () {
+              _viewModel.repository.markAllAsRead().then((_) {
+                _viewModel.fetchAndGroupNotifications();
+              });
+            },
+          )
+        ],
       ),
       drawer: AppDrawer(
         authRepository: widget.authRepository,
@@ -102,23 +123,41 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               }
 
               if (_viewModel.errorMessage != null) {
-                return Center(child: Text('Erro: ${_viewModel.errorMessage}'));
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'Erro: ${_viewModel.errorMessage}',
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                );
               }
 
               if (_viewModel.groupedNotifications.isEmpty) {
-                return const Center(child: Text('Não tens notificações.'));
+                return const Center(
+                  child: Text(
+                    'Não existem notificações no momento.',
+                    style: TextStyle(fontSize: 16.0, color: Colors.grey),
+                  ),
+                );
               }
 
-              return ListView.separated(
-                itemCount: _viewModel.groupedNotifications.length,
-                separatorBuilder: (context, index) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final group = _viewModel.groupedNotifications[index];
-                  return GroupedNotificationTile(
-                    notificationGroup: group,
-                    onTap: () => _navigateToTicket(group['ticketId']),
-                  );
-                },
+              return RefreshIndicator(
+                onRefresh: _viewModel.fetchAndGroupNotifications,
+                child: ListView.separated(
+                  padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
+                  itemCount: _viewModel.groupedNotifications.length,
+                  separatorBuilder: (context, index) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final group = _viewModel.groupedNotifications[index];
+                    return GroupedNotificationTile(
+                      groupData: group,
+                      onTap: () => _handleNotificationTap(group),
+                    );
+                  },
+                ),
               );
             },
           ),
