@@ -3,9 +3,11 @@ import '../../features/auth/repositories/auth_repository.dart';
 import '../../features/profile/repositories/profile_repository.dart';
 import '../../features/tickets/repositories/ticket_repository.dart';
 import '../../features/auth/ui/login_screen.dart';
+import '../../features/tickets/ui/ticket_list_screen.dart';
 import '../../features/dashboard/ui/dashboard_screen.dart';
+import '../../features/users/ui/user_management_screen.dart';
+import '../../features/profile/ui/profile_screen.dart';
 import '../theme/theme_controller.dart';
-import 'placeholder_screen.dart';
 
 /// Main navigation Sidebar (Drawer) of the application.
 class AppDrawer extends StatefulWidget {
@@ -74,16 +76,6 @@ class _AppDrawerState extends State<AppDrawer> {
     }
   }
 
-  /// Reusable method to create identical instances of this Drawer for different routes.
-  /// * @param newRoute The route name for the new drawer instance.
-  Widget _buildSelfDrawer(String newRoute) {
-    return AppDrawer(
-      authRepository: widget.authRepository,
-      ticketRepository: widget.ticketRepository,
-      profileRepository: widget.profileRepository,
-      currentRoute: newRoute,
-    );
-  }
 
   /// Handles internal navigation. Closes drawer if already on route.
   void _navigateTo(String route, Widget screen) {
@@ -106,29 +98,41 @@ class _AppDrawerState extends State<AppDrawer> {
       backgroundColor: colorScheme.surface,
       child: Column(
         children: [
-          UserAccountsDrawerHeader(
-            accountName: Text(
-              _userName, 
-              style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onPrimary)
-            ),
-            accountEmail: Text(
-              _userEmail, 
-              style: TextStyle(color: colorScheme.onPrimary.withValues(alpha: 0.8))
-            ),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: colorScheme.onPrimary,
-              child: Text(
-                _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
-                style: TextStyle(fontSize: 24, color: colorScheme.primary),
+          // Wraps the header in an InkWell to make it tappable and navigate to Profile
+          InkWell(
+            onTap: () => _navigateTo(
+              'Profile', 
+              ProfileScreen(
+                authRepository: widget.authRepository,
+                ticketRepository: widget.ticketRepository,
+                profileRepository: widget.profileRepository,
               ),
             ),
-            decoration: BoxDecoration(
-              color: colorScheme.primary,
+            child: UserAccountsDrawerHeader(
+              accountName: Text(
+                _userName, 
+                style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onPrimary)
+              ),
+              accountEmail: Text(
+                _userEmail, 
+                style: TextStyle(color: colorScheme.onPrimary.withValues(alpha: 0.8))
+              ),
+              currentAccountPicture: CircleAvatar(
+                backgroundColor: colorScheme.onPrimary,
+                child: Text(
+                  _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
+                  style: TextStyle(fontSize: 24, color: colorScheme.primary),
+                ),
+              ),
+              decoration: BoxDecoration(
+                color: colorScheme.primary,
+              ),
+              margin: EdgeInsets.zero, // Removes the bottom margin so InkWell looks better
             ),
           ),
           Expanded(
             child: ListView(
-              padding: EdgeInsets.zero,
+              padding: const EdgeInsets.only(top: 8.0), // Adds a little spacing after the header
               children: [
                 _buildNavItem(
                   icon: Icons.dashboard_rounded,
@@ -136,7 +140,11 @@ class _AppDrawerState extends State<AppDrawer> {
                   route: 'Dashboard',
                   onTap: () => _navigateTo(
                     'Dashboard', 
-                    PlaceholderScreen(title: 'Dashboard', drawer: _buildSelfDrawer('Dashboard'))
+                    DashboardScreen(
+                      authRepository: widget.authRepository,
+                      ticketRepository: widget.ticketRepository,
+                      profileRepository: widget.profileRepository,
+                    )
                   ),
                 ),
                 _buildNavItem(
@@ -145,7 +153,7 @@ class _AppDrawerState extends State<AppDrawer> {
                   route: 'Tickets',
                   onTap: () => _navigateTo(
                     'Tickets', 
-                    DashboardScreen(
+                    TicketListScreen(
                       authRepository: widget.authRepository,
                       ticketRepository: widget.ticketRepository,
                       profileRepository: widget.profileRepository,
@@ -158,16 +166,11 @@ class _AppDrawerState extends State<AppDrawer> {
                   route: 'Users',
                   onTap: () => _navigateTo(
                     'Users', 
-                    PlaceholderScreen(title: 'Users', drawer: _buildSelfDrawer('Users'))
-                  ),
-                ),
-                _buildNavItem(
-                  icon: Icons.person_rounded,
-                  title: 'Profile',
-                  route: 'Profile',
-                  onTap: () => _navigateTo(
-                    'Profile', 
-                    PlaceholderScreen(title: 'Profile', drawer: _buildSelfDrawer('Profile'))
+                    UserManagementScreen(
+                      authRepository: widget.authRepository,
+                      ticketRepository: widget.ticketRepository,
+                      profileRepository: widget.profileRepository,
+                    )
                   ),
                 ),
               ],

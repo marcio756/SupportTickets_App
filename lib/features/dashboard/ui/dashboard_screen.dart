@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_drawer.dart';
 import '../../auth/repositories/auth_repository.dart';
 import '../../tickets/repositories/ticket_repository.dart';
 import '../../profile/repositories/profile_repository.dart';
-import '../../tickets/ui/components/ticket_card.dart';
-import '../../tickets/components/ticket_filters_bottom_sheet.dart';
-import '../../tickets/ui/ticket_create_screen.dart';
-import '../../tickets/ui/ticket_details_screen.dart';
-import '../../tickets/viewmodels/ticket_list_viewmodel.dart';
-import '../../../core/widgets/app_drawer.dart';
-import '../../../core/widgets/placeholder_screen.dart';
+import 'components/stat_card.dart';
 
+/// The main dashboard screen displaying key metrics and statistics.
+/// The layout adapts based on the user's role (Support vs Customer).
 class DashboardScreen extends StatefulWidget {
   final AuthRepository authRepository;
   final TicketRepository ticketRepository;
@@ -27,180 +24,130 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  late final TicketListViewModel _viewModel;
-
-  @override
-  void initState() {
-    super.initState();
-    _viewModel = TicketListViewModel(ticketRepository: widget.ticketRepository);
-    _viewModel.loadTickets();
-  }
-
-  @override
-  void dispose() {
-    _viewModel.dispose();
-    super.dispose();
-  }
-
-  void _openFilters() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: TicketFiltersBottomSheet(viewModel: _viewModel),
-      ),
-    );
-  }
-
-  void _openNotifications() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PlaceholderScreen(
-          title: 'Notificações',
-          drawer: AppDrawer(
-            authRepository: widget.authRepository,
-            ticketRepository: widget.ticketRepository,
-            profileRepository: widget.profileRepository,
-            currentRoute: '', 
-          ),
-        )
-      )
-    );
-  }
+  // Mock property to toggle UI design before API implementation.
+  // Set to true to see the Support view, false to see the Customer view.
+  final bool _isSupportRole = true; 
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text('Dashboard', style: TextStyle(fontWeight: FontWeight.bold)),
+        elevation: 0,
+      ),
       drawer: AppDrawer(
         authRepository: widget.authRepository,
         ticketRepository: widget.ticketRepository,
         profileRepository: widget.profileRepository,
-        currentRoute: 'Tickets',
+        currentRoute: 'Dashboard',
       ),
-      appBar: AppBar(
-        title: const Text('My Tickets', style: TextStyle(fontWeight: FontWeight.bold)),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none_rounded),
-            tooltip: 'Notificações',
-            onPressed: _openNotifications,
-          ),
-          IconButton(
-            icon: const Icon(Icons.filter_list_rounded),
-            tooltip: 'Filtros',
-            onPressed: _openFilters,
-          ),
-        ],
-      ),
-      body: ListenableBuilder(
-        listenable: _viewModel,
-        builder: (context, _) {
-          return Column(
-            children: [
-              Container(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Search tickets...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
-                    ),
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                  ),
-                  onSubmitted: (value) => _viewModel.setSearchQuery(value),
-                ),
-              ),
-              Expanded(
-                child: _buildContent(),
-              ),
-            ],
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final bool? shouldRefresh = await Navigator.of(context).push<bool>(
-            MaterialPageRoute(
-              builder: (_) => TicketCreateScreen(ticketRepository: widget.ticketRepository),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Overview',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
-          );
-          
-          if (shouldRefresh == true) {
-            _viewModel.loadTickets();
-          }
-        },
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        child: Icon(Icons.add, color: Theme.of(context).colorScheme.onPrimary),
+            const SizedBox(height: 16),
+            _buildStatGrid(context),
+            if (_isSupportRole) ...[
+              const SizedBox(height: 32),
+              Text(
+                'Top Clients (By Tickets)',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              _buildTopClientsList(context),
+            ]
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildContent() {
-    if (_viewModel.isLoading && _viewModel.tickets.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_viewModel.errorMessage != null && _viewModel.tickets.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 60, color: Theme.of(context).colorScheme.error),
-              const SizedBox(height: 16),
-              const Text('Failed to load tickets', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text(_viewModel.errorMessage!, textAlign: TextAlign.center),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _viewModel.loadTickets, 
-                child: const Text('Try Again')
+  /// Builds the grid of metric cards depending on the user role.
+  Widget _buildStatGrid(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 2,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      childAspectRatio: 1.1,
+      children: _isSupportRole
+          ? const [
+              StatCard(
+                title: 'Global Active Tickets',
+                value: '42',
+                icon: Icons.confirmation_number_outlined,
+              ),
+              StatCard(
+                title: 'Resolved (All Time)',
+                value: '1,204',
+                icon: Icons.check_circle_outline,
+                iconBackgroundColor: Colors.greenAccent,
+              ),
+              StatCard(
+                title: 'Time Spent Today (Hrs)',
+                value: '5.2',
+                icon: Icons.timer_outlined,
+                iconBackgroundColor: Colors.orangeAccent,
+              ),
+            ]
+          : const [
+              StatCard(
+                title: 'Open Tickets',
+                value: '3',
+                icon: Icons.support_agent_outlined,
+              ),
+              StatCard(
+                title: 'Resolved Tickets',
+                value: '15',
+                icon: Icons.task_alt,
+                iconBackgroundColor: Colors.greenAccent,
+              ),
+              StatCard(
+                title: 'Time Remaining (Min)',
+                value: '120',
+                icon: Icons.hourglass_bottom,
+                iconBackgroundColor: Colors.blueAccent,
               ),
             ],
+    );
+  }
+
+  /// Builds a mockup list of top clients for the support view.
+  Widget _buildTopClientsList(BuildContext context) {
+    // Mock data for UI design
+    final List<Map<String, dynamic>> topClients = [
+      {'name': 'Acme Corp', 'tickets': 150, 'avatar': 'A'},
+      {'name': 'Globex Inc', 'tickets': 120, 'avatar': 'G'},
+      {'name': 'Initech', 'tickets': 85, 'avatar': 'I'},
+      {'name': 'Umbrella Corp', 'tickets': 64, 'avatar': 'U'},
+      {'name': 'Soylent', 'tickets': 42, 'avatar': 'S'},
+    ];
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: topClients.length,
+      separatorBuilder: (context, index) => const Divider(),
+      itemBuilder: (context, index) {
+        final client = topClients[index];
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+            child: Text(client['avatar'], style: TextStyle(color: Theme.of(context).colorScheme.onSecondaryContainer)),
           ),
-        ),
-      );
-    }
-
-    if (_viewModel.tickets.isEmpty) {
-      return Center(
-        child: Text('You have no tickets matching the criteria.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _viewModel.loadTickets,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: _viewModel.tickets.length,
-        itemBuilder: (context, index) {
-          final ticket = _viewModel.tickets[index];
-          return TicketCard(
-            ticket: ticket,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => TicketDetailsScreen(
-                    ticket: ticket,
-                    ticketRepository: widget.ticketRepository,
-                    profileRepository: widget.profileRepository,
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
+          title: Text(client['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+          trailing: Chip(
+            label: Text('${client['tickets']} Tickets'),
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+          ),
+        );
+      },
     );
   }
 }
