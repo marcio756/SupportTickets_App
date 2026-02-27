@@ -19,12 +19,10 @@ class FirebaseMessagingService {
   FirebaseMessagingService._internal();
 
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
-  bool _isInitialized = false;
 
   /// Inicializa o escutador de notificações e pede permissão ao utilizador.
   /// Passamos o BuildContext para podermos desenhar um Snackbar quando a App está aberta.
   Future<void> init(BuildContext context, ApiClient apiClient) async {
-    if (_isInitialized) return;
 
     // 1. Configurar o recetor de background
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -65,7 +63,6 @@ class FirebaseMessagingService {
         }
       });
 
-      _isInitialized = true;
     } else {
       log('Permissão de Notificações negada pelo utilizador.');
     }
@@ -97,8 +94,7 @@ class FirebaseMessagingService {
       }
 
       // Faz a chamada HTTP ao Laravel
-      // NOTA: Ajusta `apiClient.post` consoante o nome do método que usas no teu ApiClient (ex: dio.post, http.post, etc)
-      await apiClient.post('/api/fcm-token', data: {
+      await apiClient.post('/fcm-token', data: {
         'token': token,
         'device_type': deviceType,
       });
