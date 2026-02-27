@@ -262,7 +262,17 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                 isSending: _viewModel.isSending,
                 isEnabled: isTicketInProgress,
                 onSendMessage: (text, attachment) async {
-                  await _viewModel.sendMessage(text, attachment: attachment);
+                  final success = await _viewModel.sendMessage(text, attachment: attachment);
+                  
+                  if (!success && mounted && _viewModel.errorMessage != null) {
+                    // ignore: use_build_context_synchronously
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(_viewModel.errorMessage!),
+                        backgroundColor: colorScheme.error,
+                      ),
+                    );
+                  }
                 },
               ),
             ],

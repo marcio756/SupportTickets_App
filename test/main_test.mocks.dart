@@ -4,8 +4,8 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i7;
-import 'dart:io' as _i9;
 
+import 'package:file_picker/file_picker.dart' as _i9;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:shared_preferences/shared_preferences.dart' as _i3;
 import 'package:supporttickets_app/core/network/api_client.dart' as _i2;
@@ -336,7 +336,7 @@ class MockTicketRepository extends _i1.Mock implements _i8.TicketRepository {
     int? ticketId,
     String? message, {
     int? userId,
-    _i9.File? attachment,
+    _i9.PlatformFile? attachment,
   }) =>
       (super.noSuchMethod(
             Invocation.method(

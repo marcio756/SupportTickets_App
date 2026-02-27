@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../features/auth/repositories/auth_repository.dart';
 import '../../features/profile/repositories/profile_repository.dart';
 import '../../features/tickets/repositories/ticket_repository.dart';
-import '../../features/notifications/repositories/notification_repository.dart'; // NOVO IMPORT
+import '../../features/notifications/repositories/notification_repository.dart';
 import '../../features/auth/ui/login_screen.dart';
 import '../../features/tickets/ui/ticket_list_screen.dart';
 import '../../features/dashboard/ui/dashboard_screen.dart';
@@ -32,15 +32,17 @@ class AppDrawer extends StatefulWidget {
 class _AppDrawerState extends State<AppDrawer> {
   String _userName = 'Loading...';
   String _userEmail = '';
-  int _unreadNotifications = 0; // Estado para a contagem do badge
+  String _userRole = ''; // State to store the user role and manage permissions
+  int _unreadNotifications = 0;
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
-    _loadUnreadNotificationsCount(); // Inicia a contagem de notificações
+    _loadUnreadNotificationsCount();
   }
 
+  /// Fetches the user profile and updates local state, including role-based access control flags.
   Future<void> _loadProfile() async {
     try {
       final profile = await widget.profileRepository.getProfile();
@@ -49,6 +51,7 @@ class _AppDrawerState extends State<AppDrawer> {
         setState(() {
           _userName = data['name'] ?? 'User';
           _userEmail = data['email'] ?? '';
+          _userRole = data['role'] ?? '';
         });
       }
     } catch (e) {
@@ -56,7 +59,7 @@ class _AppDrawerState extends State<AppDrawer> {
     }
   }
 
-  /// Busca as notificações ativas à API para determinar o número de não-lidas
+  /// Fetches active notifications from the API to determine the unread badge count.
   Future<void> _loadUnreadNotificationsCount() async {
     try {
       final notificationRepo = NotificationRepository(apiClient: widget.authRepository.apiClient);
@@ -74,6 +77,7 @@ class _AppDrawerState extends State<AppDrawer> {
     }
   }
 
+  /// Handles the logout process and cleans the navigation stack.
   Future<void> _handleLogout(BuildContext context) async {
     try {
       await widget.authRepository.logout();
@@ -95,6 +99,7 @@ class _AppDrawerState extends State<AppDrawer> {
     }
   }
 
+  /// Replaces the current screen if the route is different, otherwise just closes the drawer.
   void _navigateTo(String route, Widget screen) {
     if (widget.currentRoute == route) {
       Navigator.pop(context);
@@ -168,14 +173,16 @@ class _AppDrawerState extends State<AppDrawer> {
                     authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
                   )),
                 ),
-                _buildNavItem(
-                  icon: Icons.people_alt_rounded,
-                  title: 'Users',
-                  route: 'Users',
-                  onTap: () => _navigateTo('Users', UserManagementScreen(
-                    authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
-                  )),
-                ),
+                // Only render the Users menu item if the user is NOT a customer
+                if (_userRole != 'customer' && _userRole.isNotEmpty)
+                  _buildNavItem(
+                    icon: Icons.people_alt_rounded,
+                    title: 'Users',
+                    route: 'Users',
+                    onTap: () => _navigateTo('Users', UserManagementScreen(
+                      authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
+                    )),
+                  ),
               ],
             ),
           ),
@@ -200,7 +207,7 @@ class _AppDrawerState extends State<AppDrawer> {
     );
   }
 
-  // Modificado para suportar o widget de trailing (o badge vermelho numérico)
+  /// Helper component to build a consistent navigation tile.
   Widget _buildNavItem({
     required IconData icon, 
     required String title, 

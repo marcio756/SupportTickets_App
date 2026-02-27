@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:file_picker/file_picker.dart';
 import '../models/ticket.dart';
 import '../models/ticket_message.dart';
 import '../repositories/ticket_repository.dart';
@@ -85,7 +85,7 @@ class TicketDetailsViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> sendMessage(String? messageText, {File? attachment}) async {
+  Future<bool> sendMessage(String? messageText, {PlatformFile? attachment}) async {
     if ((messageText == null || messageText.trim().isEmpty) && attachment == null) return false;
 
     _isSending = true;

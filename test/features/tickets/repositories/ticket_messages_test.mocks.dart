@@ -5,6 +5,7 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i3;
 
+import 'package:dio/dio.dart' as _i4;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:supporttickets_app/core/network/api_client.dart' as _i2;
 
@@ -35,12 +36,13 @@ class MockApiClient extends _i1.Mock implements _i2.ApiClient {
   _i3.Future<Map<String, dynamic>> get(
     String? path, {
     Map<String, dynamic>? queryParameters,
+    _i4.Options? options,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
               #get,
               [path],
-              {#queryParameters: queryParameters},
+              {#queryParameters: queryParameters, #options: options},
             ),
             returnValue: _i3.Future<Map<String, dynamic>>.value(
               <String, dynamic>{},
@@ -49,9 +51,13 @@ class MockApiClient extends _i1.Mock implements _i2.ApiClient {
           as _i3.Future<Map<String, dynamic>>);
 
   @override
-  _i3.Future<Map<String, dynamic>> post(String? path, {dynamic data}) =>
+  _i3.Future<Map<String, dynamic>> post(
+    String? path, {
+    dynamic data,
+    _i4.Options? options,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#post, [path], {#data: data}),
+            Invocation.method(#post, [path], {#data: data, #options: options}),
             returnValue: _i3.Future<Map<String, dynamic>>.value(
               <String, dynamic>{},
             ),
@@ -59,9 +65,13 @@ class MockApiClient extends _i1.Mock implements _i2.ApiClient {
           as _i3.Future<Map<String, dynamic>>);
 
   @override
-  _i3.Future<Map<String, dynamic>> put(String? path, {dynamic data}) =>
+  _i3.Future<Map<String, dynamic>> put(
+    String? path, {
+    dynamic data,
+    _i4.Options? options,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#put, [path], {#data: data}),
+            Invocation.method(#put, [path], {#data: data, #options: options}),
             returnValue: _i3.Future<Map<String, dynamic>>.value(
               <String, dynamic>{},
             ),
@@ -69,9 +79,26 @@ class MockApiClient extends _i1.Mock implements _i2.ApiClient {
           as _i3.Future<Map<String, dynamic>>);
 
   @override
-  _i3.Future<Map<String, dynamic>> patch(String? path, {dynamic data}) =>
+  _i3.Future<Map<String, dynamic>> patch(
+    String? path, {
+    dynamic data,
+    _i4.Options? options,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#patch, [path], {#data: data}),
+            Invocation.method(#patch, [path], {#data: data, #options: options}),
+            returnValue: _i3.Future<Map<String, dynamic>>.value(
+              <String, dynamic>{},
+            ),
+          )
+          as _i3.Future<Map<String, dynamic>>);
+
+  @override
+  _i3.Future<Map<String, dynamic>> delete(
+    String? path, {
+    _i4.Options? options,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#delete, [path], {#options: options}),
             returnValue: _i3.Future<Map<String, dynamic>>.value(
               <String, dynamic>{},
             ),

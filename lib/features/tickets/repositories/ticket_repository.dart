@@ -1,5 +1,6 @@
-import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../core/network/api_client.dart';
 import '../models/ticket.dart';
 import '../models/ticket_message.dart';
@@ -111,28 +112,45 @@ class TicketRepository {
     return Ticket.fromJson(data as Map<String, dynamic>);
   }
 
-  /// Sends a new message within a specific ticket thread, optionally including a file attachment.
+  /// Sends a new message within a specific ticket thread, optionally including a cross-platform file attachment.
   /// * [ticketId] The unique identifier of the ticket.
   /// [message] The message content.
   /// [userId] Optional current user ID for ownership check.
-  /// [attachment] Optional [File] to be uploaded via FormData.
+  /// [attachment] Optional [PlatformFile] containing bytes or path.
   /// Returns the newly created [TicketMessage].
-  Future<TicketMessage> sendMessage(int ticketId, String? message, {int? userId, File? attachment}) async {
+  Future<TicketMessage> sendMessage(int ticketId, String? message, {int? userId, PlatformFile? attachment}) async {
     dynamic payload;
+    Options? requestOptions;
 
     if (attachment != null) {
-      final String fileName = attachment.path.split('/').last;
+      MultipartFile multipartFile;
+
+      // Platform-agnostic file processing: Prioritize bytes for Web, fallback to path for Native Mobile
+      if (kIsWeb || attachment.bytes != null) {
+        multipartFile = MultipartFile.fromBytes(
+          attachment.bytes!, 
+          filename: attachment.name,
+        );
+      } else {
+        multipartFile = await MultipartFile.fromFile(
+          attachment.path!, 
+          filename: attachment.name,
+        );
+      }
+
       payload = FormData.fromMap({
-        if (message != null && message.trim().isNotEmpty) 'message': message.trim(),
-        'attachment': await MultipartFile.fromFile(attachment.path, filename: fileName),
+        'message': message?.trim() ?? '',
+        'attachment': multipartFile,
       });
+      requestOptions = Options(contentType: 'multipart/form-data');
     } else {
-      payload = {'message': message};
+      payload = {'message': message?.trim() ?? ''};
     }
 
     final Map<String, dynamic> response = await apiClient.post(
       '/tickets/$ticketId/messages', 
-      data: payload
+      data: payload,
+      options: requestOptions,
     );
     
     final ticketData = response.containsKey('data') ? response['data'] : response;
@@ -143,7 +161,7 @@ class TicketRepository {
       return TicketMessage.fromJson(lastMessage as Map<String, dynamic>, userId ?? 0);
     }
     
-    throw Exception('Message sent but not found in the ticket thread.');
+    throw Exception('Mensagem enviada, mas não foi devolvida pela API.');
   }
 
   /// Submits a request to deduct or track support time for a specific ticket.

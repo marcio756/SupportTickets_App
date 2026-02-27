@@ -1,10 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 
 /// A reusable chat input component for typing, attaching files, and sending messages.
 class TicketChatInput extends StatefulWidget {
-  final Function(String?, File?) onSendMessage;
+  final Function(String?, PlatformFile?) onSendMessage;
   final bool isSending;
   final bool isEnabled;
 
@@ -21,16 +20,20 @@ class TicketChatInput extends StatefulWidget {
 
 class _TicketChatInputState extends State<TicketChatInput> {
   final TextEditingController _controller = TextEditingController();
-  File? _selectedFile;
+  PlatformFile? _selectedFile;
 
   /// Prompts the user to pick a file from their device.
+  /// Uses withData: true to ensure file bytes are loaded into memory for Web compatibility.
   Future<void> _pickFile() async {
     if (!widget.isEnabled || widget.isSending) return;
 
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-    if (result != null && result.files.single.path != null) {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      withData: true, // Crucial for Flutter Web
+    );
+    
+    if (result != null && result.files.single.name.isNotEmpty) {
       setState(() {
-        _selectedFile = File(result.files.single.path!);
+        _selectedFile = result.files.single;
       });
     }
   }
@@ -98,7 +101,7 @@ class _TicketChatInputState extends State<TicketChatInput> {
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        _selectedFile!.path.split('/').last,
+                        _selectedFile!.name,
                         style: TextStyle(fontSize: 12, color: colorScheme.onSurface),
                         overflow: TextOverflow.ellipsis,
                       ),

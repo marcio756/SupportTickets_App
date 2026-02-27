@@ -23,13 +23,12 @@ class ApiClient {
 
   /// Configures base URL, timeouts, and intercepts requests to inject tokens.
   void _configureDio() {
-    // Set your local or production Laravel API URL here
     _dio.options.baseUrl = '$hostUrl/api';
     _dio.options.connectTimeout = const Duration(seconds: 10);
     _dio.options.receiveTimeout = const Duration(seconds: 10);
     _dio.options.headers = {
       'Accept': 'application/json',
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json', // Restaurado como default de segurança
     };
 
     _dio.interceptors.add(
@@ -57,13 +56,15 @@ class ApiClient {
   ///
   /// [path] The API endpoint.
   /// [queryParameters] Optional URL parameters.
+  /// [options] Optional Dio request options.
   /// Returns a Map representing the JSON response.
   Future<Map<String, dynamic>> get(
     String path, {
     Map<String, dynamic>? queryParameters,
+    Options? options,
   }) async {
     try {
-      final response = await _dio.get(path, queryParameters: queryParameters);
+      final response = await _dio.get(path, queryParameters: queryParameters, options: options);
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       throw _handleError(e);
@@ -74,13 +75,15 @@ class ApiClient {
   ///
   /// [path] The API endpoint.
   /// [data] The payload to send (supports FormData for file uploads).
+  /// [options] Optional Dio request options.
   /// Returns a Map representing the JSON response.
   Future<Map<String, dynamic>> post(
     String path, {
     dynamic data,
+    Options? options,
   }) async {
     try {
-      final response = await _dio.post(path, data: data);
+      final response = await _dio.post(path, data: data, options: options);
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       throw _handleError(e);
@@ -91,13 +94,15 @@ class ApiClient {
   ///
   /// [path] The API endpoint.
   /// [data] The payload to send.
+  /// [options] Optional Dio request options.
   /// Returns a Map representing the JSON response.
   Future<Map<String, dynamic>> put(
     String path, {
     dynamic data,
+    Options? options,
   }) async {
     try {
-      final response = await _dio.put(path, data: data);
+      final response = await _dio.put(path, data: data, options: options);
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       throw _handleError(e);
@@ -108,13 +113,15 @@ class ApiClient {
   ///
   /// [path] The API endpoint.
   /// [data] The payload to send.
+  /// [options] Optional Dio request options.
   /// Returns a Map representing the JSON response.
   Future<Map<String, dynamic>> patch(
     String path, {
     dynamic data,
+    Options? options,
   }) async {
     try {
-      final response = await _dio.patch(path, data: data);
+      final response = await _dio.patch(path, data: data, options: options);
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       throw _handleError(e);
@@ -124,10 +131,14 @@ class ApiClient {
   /// Performs a generic DELETE request.
   ///
   /// [path] The API endpoint.
+  /// [options] Optional Dio request options.
   /// Returns a Map representing the JSON response.
-  Future<Map<String, dynamic>> delete(String path) async {
+  Future<Map<String, dynamic>> delete(
+    String path, {
+    Options? options,
+  }) async {
     try {
-      final response = await _dio.delete(path);
+      final response = await _dio.delete(path, options: options);
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       throw _handleError(e);
