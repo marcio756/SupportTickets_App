@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_core/firebase_core.dart'; // Adicionado para inicializar o Firebase Core
+import 'firebase_options.dart'; // As opções de plataforma geradas pelo FlutterFire CLI
 
 import 'core/network/api_client.dart';
 import 'core/theme/theme_controller.dart';
@@ -15,6 +17,11 @@ import 'features/tickets/repositories/ticket_repository.dart';
 void main() async {
   // Required to interact with the Flutter engine before runApp is called
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase before any UI rendering starts
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   // Initialize Core Dependencies
   final prefs = await SharedPreferences.getInstance();

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/widgets/app_drawer.dart';
+import '../../../core/services/firebase_messaging_service.dart'; // Importação do nosso serviço singleton
 import '../../auth/repositories/auth_repository.dart';
 import '../../tickets/repositories/ticket_repository.dart';
 import '../../profile/repositories/profile_repository.dart';
@@ -39,6 +40,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _viewModel.loadDashboardData();
+      
+      // Initialize Firebase Push Notifications and request permission.
+      // We pass the active ApiClient so the service can register the token with the Laravel backend.
+      FirebaseMessagingService().init(context, widget.authRepository.apiClient);
     });
   }
 
