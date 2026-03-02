@@ -13,7 +13,7 @@ import '../../features/users/ui/user_management_screen.dart';
 import '../../features/profile/ui/profile_screen.dart';
 import '../../features/notifications/ui/notifications_screen.dart';
 import '../../features/tags/ui/tag_management_screen.dart';
-import '../../features/activity_logs/ui/components/activity_log_screen.dart';
+import '../../features/activity_logs/ui/activity_log_screen.dart';
 
 import '../theme/theme_controller.dart';
 
@@ -77,7 +77,7 @@ class _AppDrawerState extends State<AppDrawer> {
         });
       }
     } catch (e) {
-      debugPrint('Não foi possível carregar o contador de notificações.');
+      debugPrint('Could not load notifications count.');
     }
   }
 
@@ -158,7 +158,7 @@ class _AppDrawerState extends State<AppDrawer> {
                 ),
                 _buildNavItem(
                   icon: Icons.notifications_none_rounded,
-                  title: 'Notificações',
+                  title: 'Notifications',
                   route: 'Notifications',
                   trailing: _unreadNotifications > 0 ? Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -179,11 +179,11 @@ class _AppDrawerState extends State<AppDrawer> {
                   const Divider(),
                   Padding(
                     padding: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 4.0),
-                    child: Text('Administração', style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold)),
+                    child: Text('Administration', style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold)),
                   ),
                   _buildNavItem(
                     icon: Icons.people_alt_rounded,
-                    title: 'Utilizadores',
+                    title: 'Users',
                     route: 'Users',
                     onTap: () => _navigateTo('Users', UserManagementScreen(
                       authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
@@ -191,18 +191,24 @@ class _AppDrawerState extends State<AppDrawer> {
                   ),
                   _buildNavItem(
                     icon: Icons.label_rounded,
-                    title: 'Gestão de Tags',
+                    title: 'Tag Management',
                     route: 'Tags',
                     onTap: () => _navigateTo('Tags', TagManagementScreen(
                       repository: TagRepository(apiClient: widget.authRepository.apiClient),
+                      authRepository: widget.authRepository,
+                      ticketRepository: widget.ticketRepository,
+                      profileRepository: widget.profileRepository,
                     )),
                   ),
                   _buildNavItem(
                     icon: Icons.history_rounded,
-                    title: 'Logs de Atividade',
+                    title: 'Activity Logs',
                     route: 'Logs',
                     onTap: () => _navigateTo('Logs', ActivityLogScreen(
                       repository: ActivityLogRepository(apiClient: widget.authRepository.apiClient),
+                      authRepository: widget.authRepository,
+                      ticketRepository: widget.ticketRepository,
+                      profileRepository: widget.profileRepository,
                     )),
                   ),
                 ],

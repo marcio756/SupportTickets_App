@@ -1,12 +1,25 @@
 import 'package:flutter/material.dart';
-import '../../repositories/activity_log_repository.dart';
-import '../../viewmodels/activity_log_viewmodel.dart';
-import 'activity_log_details_dialog.dart';
+import '../../auth/repositories/auth_repository.dart';
+import '../../profile/repositories/profile_repository.dart';
+import '../../tickets/repositories/ticket_repository.dart';
+import '../../../core/widgets/app_drawer.dart';
+import '../repositories/activity_log_repository.dart';
+import '../viewmodels/activity_log_viewmodel.dart';
+import 'components/activity_log_details_dialog.dart';
 
 class ActivityLogScreen extends StatefulWidget {
   final ActivityLogRepository repository;
+  final AuthRepository authRepository;
+  final TicketRepository ticketRepository;
+  final ProfileRepository profileRepository;
 
-  const ActivityLogScreen({super.key, required this.repository});
+  const ActivityLogScreen({
+    super.key, 
+    required this.repository,
+    required this.authRepository,
+    required this.ticketRepository,
+    required this.profileRepository,
+  });
 
   @override
   State<ActivityLogScreen> createState() => _ActivityLogScreenState();
@@ -52,13 +65,19 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Logs de Atividade'),
+        title: const Text('Activity Logs'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _viewModel.loadLogs,
           )
         ],
+      ),
+      drawer: AppDrawer(
+        authRepository: widget.authRepository,
+        ticketRepository: widget.ticketRepository,
+        profileRepository: widget.profileRepository,
+        currentRoute: 'Logs',
       ),
       body: ListenableBuilder(
         listenable: _viewModel,
@@ -68,11 +87,11 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
           }
 
           if (_viewModel.errorMessage != null) {
-            return Center(child: Text('Erro: ${_viewModel.errorMessage}', style: TextStyle(color: colorScheme.error)));
+            return Center(child: Text('Error: ${_viewModel.errorMessage}', style: TextStyle(color: colorScheme.error)));
           }
 
           if (_viewModel.logs.isEmpty) {
-            return const Center(child: Text('Nenhum registo encontrado.'));
+            return const Center(child: Text('No logs found.'));
           }
 
           return ListView.separated(
@@ -86,7 +105,7 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                   child: Icon(_getEventIcon(log.event), color: _getEventColor(log.event, colorScheme)),
                 ),
                 title: Text(log.description),
-                subtitle: Text('${log.causer ?? 'Sistema'} • ${log.createdAt.day}/${log.createdAt.month}/${log.createdAt.year} ${log.createdAt.hour}:${log.createdAt.minute.toString().padLeft(2, '0')}'),
+                subtitle: Text('${log.causer ?? 'System'} • ${log.createdAt.day.toString().padLeft(2, '0')}/${log.createdAt.month.toString().padLeft(2, '0')}/${log.createdAt.year} ${log.createdAt.hour.toString().padLeft(2, '0')}:${log.createdAt.minute.toString().padLeft(2, '0')}'),
                 trailing: const Icon(Icons.chevron_right, size: 16),
                 onTap: () {
                   showDialog(

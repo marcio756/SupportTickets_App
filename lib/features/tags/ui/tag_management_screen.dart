@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../auth/repositories/auth_repository.dart';
+import '../../profile/repositories/profile_repository.dart';
+import '../../tickets/repositories/ticket_repository.dart';
+import '../../../core/widgets/app_drawer.dart';
 import '../models/tag.dart';
 import '../repositories/tag_repository.dart';
 import '../viewmodels/tag_management_viewmodel.dart';
@@ -6,8 +10,17 @@ import 'components/tag_form_dialog.dart';
 
 class TagManagementScreen extends StatefulWidget {
   final TagRepository repository;
+  final AuthRepository authRepository;
+  final TicketRepository ticketRepository;
+  final ProfileRepository profileRepository;
 
-  const TagManagementScreen({super.key, required this.repository});
+  const TagManagementScreen({
+    super.key, 
+    required this.repository,
+    required this.authRepository,
+    required this.ticketRepository,
+    required this.profileRepository,
+  });
 
   @override
   State<TagManagementScreen> createState() => _TagManagementScreenState();
@@ -39,7 +52,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
               ? await _viewModel.createTag(name, color)
               : await _viewModel.updateTag(tag.id, name, color);
           
-          if (!mounted) return; // Fixes async gap warning
+          if (!mounted) return; 
           
           if (!success && _viewModel.errorMessage != null) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -55,10 +68,10 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Aviso'),
-        content: Text('Tens a certeza que desejas eliminar a tag "${tag.name}"?'),
+        title: const Text('Warning'),
+        content: Text('Are you sure you want to delete the tag "${tag.name}"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error, foregroundColor: Colors.white),
             onPressed: () async {
@@ -66,7 +79,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
               
               final success = await _viewModel.deleteTag(tag.id);
               
-              if (!mounted) return; // Fixes async gap warning
+              if (!mounted) return; 
               
               if (!success && _viewModel.errorMessage != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -74,7 +87,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                 );
               }
             },
-            child: const Text('Eliminar'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -85,7 +98,13 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gestão de Tags'),
+        title: const Text('Tag Management'),
+      ),
+      drawer: AppDrawer(
+        authRepository: widget.authRepository,
+        ticketRepository: widget.ticketRepository,
+        profileRepository: widget.profileRepository,
+        currentRoute: 'Tags',
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showTagForm(),
@@ -99,7 +118,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
           }
 
           if (_viewModel.tags.isEmpty) {
-            return const Center(child: Text('Nenhuma tag encontrada.'));
+            return const Center(child: Text('No tags found.'));
           }
 
           return ListView.builder(
@@ -115,7 +134,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                     child: const Icon(Icons.label, size: 18),
                   ),
                   title: Text(tag.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: tag.color != null && tag.color!.isNotEmpty ? Text('Cor: ${tag.color}') : null,
+                  subtitle: tag.color != null && tag.color!.isNotEmpty ? Text('Color: ${tag.color}') : null,
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

@@ -7,20 +7,33 @@ class ActivityLogRepository {
 
   ActivityLogRepository({required this.apiClient});
 
-  List<dynamic> _extractDataList(Map<String, dynamic> response) {
-    dynamic data = response.containsKey('data') ? response['data'] : response;
-    if (data is Map && data.containsKey('data') && data['data'] is List) {
-      return data['data'] as List<dynamic>;
-    }
-    if (data is List) return data;
-    if (data is Map) return data.values.toList();
-    return [];
-  }
-
   /// Fetches a list of activity logs from the server.
   Future<List<ActivityLog>> getLogs() async {
     final response = await apiClient.get('/activity-logs');
-    final dataList = _extractDataList(response);
-    return dataList.map((json) => ActivityLog.fromJson(json as Map<String, dynamic>)).toList();
+    
+    // Extrai o 'data' da resposta (criado pela ApiResponser do Laravel)
+    dynamic data = response.containsKey('data') ? response['data'] : response;
+    List<dynamic> rawLogs = [];
+
+    // Navega pela estrutura complexa: { data: { logs: { current_page: 1, data: [...] }, options: {...} } }
+    if (data is Map) {
+      if (data.containsKey('logs')) {
+        dynamic logsData = data['logs'];
+        
+        // Lida com a paginação do Laravel escondida dentro de 'logs'
+        if (logsData is Map && logsData.containsKey('data')) {
+          rawLogs = logsData['data'] is List ? logsData['data'] : [];
+        } else if (logsData is List) {
+          rawLogs = logsData;
+        }
+      } else if (data.containsKey('data') && data['data'] is List) {
+        // Fallback genérico caso a API mude no futuro
+        rawLogs = data['data'];
+      }
+    } else if (data is List) {
+      rawLogs = data;
+    }
+
+    return rawLogs.map((json) => ActivityLog.fromJson(json as Map<String, dynamic>)).toList();
   }
 }
