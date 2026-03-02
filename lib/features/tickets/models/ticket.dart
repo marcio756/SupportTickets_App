@@ -13,6 +13,8 @@ class Ticket {
   final String? assigneeName;
   final int? assigneeId;
 
+  final List<Map<String, dynamic>> tags;
+
   Ticket({
     required this.id,
     required this.title,
@@ -24,6 +26,7 @@ class Ticket {
     this.customerId,
     this.assigneeName,
     this.assigneeId,
+    this.tags = const [],
   });
 
   /// Factory constructor for creating a Ticket from a JSON map.
@@ -45,6 +48,8 @@ class Ticket {
       
       assigneeName: json['support']?['name'] as String?,
       assigneeId: json['assigned_to'] as int? ?? json['support']?['id'] as int?,
+
+      tags: (json['tags'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [],
     );
   }
 
@@ -60,6 +65,7 @@ class Ticket {
     int? customerId,
     String? assigneeName,
     int? assigneeId,
+    List<Map<String, dynamic>>? tags,
   }) {
     return Ticket(
       id: id ?? this.id,
@@ -72,6 +78,7 @@ class Ticket {
       customerId: customerId ?? this.customerId,
       assigneeName: assigneeName ?? this.assigneeName,
       assigneeId: assigneeId ?? this.assigneeId,
+      tags: tags ?? this.tags,
     );
   }
 }

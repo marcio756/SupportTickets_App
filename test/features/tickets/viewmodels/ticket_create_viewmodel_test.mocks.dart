@@ -71,6 +71,16 @@ class MockTicketRepository extends _i1.Mock implements _i5.TicketRepository {
           as _i6.Future<List<Map<String, dynamic>>>);
 
   @override
+  _i6.Future<List<Map<String, dynamic>>> getTags() =>
+      (super.noSuchMethod(
+            Invocation.method(#getTags, []),
+            returnValue: _i6.Future<List<Map<String, dynamic>>>.value(
+              <Map<String, dynamic>>[],
+            ),
+          )
+          as _i6.Future<List<Map<String, dynamic>>>);
+
+  @override
   _i6.Future<List<_i3.Ticket>> getTickets({Map<String, dynamic>? filters}) =>
       (super.noSuchMethod(
             Invocation.method(#getTickets, [], {#filters: filters}),
@@ -151,6 +161,28 @@ class MockTicketRepository extends _i1.Mock implements _i5.TicketRepository {
             ),
           )
           as _i6.Future<_i3.Ticket>);
+
+  @override
+  _i6.Future<_i3.Ticket> syncTags(int? ticketId, List<int>? tagIds) =>
+      (super.noSuchMethod(
+            Invocation.method(#syncTags, [ticketId, tagIds]),
+            returnValue: _i6.Future<_i3.Ticket>.value(
+              _FakeTicket_1(
+                this,
+                Invocation.method(#syncTags, [ticketId, tagIds]),
+              ),
+            ),
+          )
+          as _i6.Future<_i3.Ticket>);
+
+  @override
+  _i6.Future<void> deleteTicket(int? ticketId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteTicket, [ticketId]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 
   @override
   _i6.Future<_i4.TicketMessage> sendMessage(

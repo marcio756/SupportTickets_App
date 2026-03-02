@@ -8,6 +8,7 @@ import 'components/ticket_chat_input.dart';
 import 'components/ticket_status_badge.dart';
 import 'components/ticket_status_dropdown.dart';
 import 'components/support_time_display.dart';
+import 'components/ticket_tags_dialog.dart';
 
 class TicketDetailsScreen extends StatefulWidget {
   final Ticket ticket;
@@ -68,6 +69,29 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
         }
       });
     }
+  }
+
+  void _showTagsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return TicketTagsDialog(
+          availableTags: _viewModel.availableTags,
+          currentTags: _viewModel.ticket.tags,
+          onSave: (List<int> selectedIds) async {
+            final success = await _viewModel.syncTicketTags(selectedIds);
+            if (!success && context.mounted && _viewModel.errorMessage != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(_viewModel.errorMessage!),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
+              );
+            }
+          },
+        );
+      },
+    );
   }
 
   Widget _buildUserInfoRow(IconData icon, String label, String value, Color iconColor) {
@@ -188,6 +212,58 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                       const SizedBox(height: 16),
                       Divider(color: colorScheme.outlineVariant),
                       const SizedBox(height: 8),
+
+                      // Tags Display & Edit Section
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.label_outline, size: 18, color: colorScheme.onSurfaceVariant),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _viewModel.ticket.tags.isEmpty 
+                                ? Text(
+                                    'Nenhuma tag associada', 
+                                    style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13, fontStyle: FontStyle.italic)
+                                  )
+                                : Wrap(
+                                    spacing: 6,
+                                    runSpacing: 6,
+                                    children: _viewModel.ticket.tags.map((tag) {
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: colorScheme.primaryContainer.withValues(alpha: 0.5),
+                                          borderRadius: BorderRadius.circular(4),
+                                          border: Border.all(
+                                            color: colorScheme.primaryContainer,
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          tag['name']?.toString() ?? '',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color: colorScheme.onSurface,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                          ),
+                          if (_viewModel.isSupporter)
+                            IconButton(
+                              icon: Icon(Icons.edit_note, color: colorScheme.primary),
+                              iconSize: 20,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              tooltip: 'Gerir Tags',
+                              onPressed: () => _showTagsDialog(context),
+                            ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
 
                       _buildUserInfoRow(
                         Icons.person, 

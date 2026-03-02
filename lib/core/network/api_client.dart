@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,6 +13,10 @@ class ApiClient {
 
   /// Base host URL of the backend (useful for resolving relative storage paths).
   static const String hostUrl = 'http://192.168.1.69:8000';
+
+  /// Global stream to broadcast unauthenticated events (e.g., token expired).
+  /// The root application should listen to this stream to force a logout redirect.
+  static final StreamController<bool> unauthenticatedStream = StreamController<bool>.broadcast();
 
   /// Initializes the API Client with required dependencies.
   ///
@@ -28,7 +33,7 @@ class ApiClient {
     _dio.options.receiveTimeout = const Duration(seconds: 10);
     _dio.options.headers = {
       'Accept': 'application/json',
-      'Content-Type': 'application/json', // Restaurado como default de segurança
+      'Content-Type': 'application/json', 
     };
 
     _dio.interceptors.add(
@@ -41,10 +46,11 @@ class ApiClient {
           return handler.next(options);
         },
         onError: (DioException e, handler) {
-          // Handle global unauthorized access (e.g., token expired)
+          // Handle global unauthorized access (e.g., token expired or invalidated)
           if (e.response?.statusCode == 401) {
             _prefs.remove(tokenKey);
-            // Typically, you would trigger a state change here to route to Login
+            // Broadcast the event to the application root to trigger a clean route switch
+            unauthenticatedStream.add(true);
           }
           return handler.next(e);
         },
@@ -53,11 +59,6 @@ class ApiClient {
   }
 
   /// Performs a generic GET request.
-  ///
-  /// [path] The API endpoint.
-  /// [queryParameters] Optional URL parameters.
-  /// [options] Optional Dio request options.
-  /// Returns a Map representing the JSON response.
   Future<Map<String, dynamic>> get(
     String path, {
     Map<String, dynamic>? queryParameters,
@@ -72,11 +73,6 @@ class ApiClient {
   }
 
   /// Performs a generic POST request.
-  ///
-  /// [path] The API endpoint.
-  /// [data] The payload to send (supports FormData for file uploads).
-  /// [options] Optional Dio request options.
-  /// Returns a Map representing the JSON response.
   Future<Map<String, dynamic>> post(
     String path, {
     dynamic data,
@@ -91,11 +87,6 @@ class ApiClient {
   }
 
   /// Performs a generic PUT request.
-  ///
-  /// [path] The API endpoint.
-  /// [data] The payload to send.
-  /// [options] Optional Dio request options.
-  /// Returns a Map representing the JSON response.
   Future<Map<String, dynamic>> put(
     String path, {
     dynamic data,
@@ -110,11 +101,6 @@ class ApiClient {
   }
 
   /// Performs a generic PATCH request.
-  ///
-  /// [path] The API endpoint.
-  /// [data] The payload to send.
-  /// [options] Optional Dio request options.
-  /// Returns a Map representing the JSON response.
   Future<Map<String, dynamic>> patch(
     String path, {
     dynamic data,
@@ -129,10 +115,6 @@ class ApiClient {
   }
 
   /// Performs a generic DELETE request.
-  ///
-  /// [path] The API endpoint.
-  /// [options] Optional Dio request options.
-  /// Returns a Map representing the JSON response.
   Future<Map<String, dynamic>> delete(
     String path, {
     Options? options,
@@ -146,9 +128,6 @@ class ApiClient {
   }
 
   /// Standardizes errors from the API into human-readable strings.
-  ///
-  /// [error] The DioException caught during the request.
-  /// Returns an Exception with a formatted message.
   Exception _handleError(DioException error) {
     if (error.response != null) {
       final responseData = error.response?.data;

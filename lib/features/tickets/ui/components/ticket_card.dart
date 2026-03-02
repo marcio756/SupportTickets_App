@@ -58,6 +58,36 @@ class TicketCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
+              if (ticket.tags.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: ticket.tags.map((tag) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        // Uses withValues(alpha: 0.5) instead of the deprecated withOpacity 
+                        // to prevent color precision loss across different color spaces
+                        color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        tag['name']?.toString() ?? '',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,

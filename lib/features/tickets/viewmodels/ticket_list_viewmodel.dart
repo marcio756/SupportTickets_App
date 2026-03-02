@@ -17,11 +17,15 @@ class TicketListViewModel extends ChangeNotifier {
   String? _statusFilter;
   int? _customerFilter;
   String? _assigneeFilter;
+  int? _tagFilter;
+  
   List<Map<String, dynamic>> _customers = [];
+  List<Map<String, dynamic>> _tags = [];
 
-  /// Initializes the ViewModel with the required repository and loads customers if applicable.
+  /// Initializes the ViewModel with the required repository and loads metadata (customers and tags) if applicable.
   TicketListViewModel({required this.ticketRepository}) {
     _loadCustomers();
+    _loadTags();
   }
 
   /// The current list of loaded tickets.
@@ -38,7 +42,10 @@ class TicketListViewModel extends ChangeNotifier {
   String? get statusFilter => _statusFilter;
   int? get customerFilter => _customerFilter;
   String? get assigneeFilter => _assigneeFilter;
+  int? get tagFilter => _tagFilter;
+  
   List<Map<String, dynamic>> get customers => _customers;
+  List<Map<String, dynamic>> get tags => _tags;
 
   /// Updates the search query and triggers a reload.
   void setSearchQuery(String query) {
@@ -64,12 +71,19 @@ class TicketListViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Updates the tag filter without automatically triggering a reload.
+  void setTagFilter(int? tagId) {
+    _tagFilter = tagId;
+    notifyListeners();
+  }
+
   /// Clears all active filters and reloads the ticket list.
   void clearFilters() {
     _searchQuery = '';
     _statusFilter = null;
     _customerFilter = null;
     _assigneeFilter = null;
+    _tagFilter = null;
     loadTickets();
   }
 
@@ -84,6 +98,17 @@ class TicketListViewModel extends ChangeNotifier {
     }
   }
 
+  /// Fetches the list of tags for filtering. 
+  /// Fails silently if the user is not a supporter or tags are unavailable.
+  Future<void> _loadTags() async {
+    try {
+      _tags = await ticketRepository.getTags();
+      notifyListeners();
+    } catch (_) {
+      _tags = [];
+    }
+  }
+
   /// Compiles active filters into a map suitable for API query parameters.
   Map<String, dynamic> _buildFilterMap() {
     return {
@@ -91,6 +116,7 @@ class TicketListViewModel extends ChangeNotifier {
       if (_statusFilter != null) 'status': _statusFilter,
       if (_customerFilter != null) 'customers': _customerFilter.toString(),
       if (_assigneeFilter != null) 'assignees': _assigneeFilter,
+      if (_tagFilter != null) 'tags': _tagFilter.toString(),
     };
   }
 
@@ -104,6 +130,25 @@ class TicketListViewModel extends ChangeNotifier {
       _tickets = await ticketRepository.getTickets(filters: _buildFilterMap());
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Deletes a specific ticket and removes it from the local state.
+  Future<bool> deleteTicket(int ticketId) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await ticketRepository.deleteTicket(ticketId);
+      _tickets.removeWhere((ticket) => ticket.id == ticketId);
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      return false;
     } finally {
       _isLoading = false;
       notifyListeners();

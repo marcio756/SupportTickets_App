@@ -14,6 +14,7 @@ class TicketDetailsViewModel extends ChangeNotifier {
   Ticket ticket;
 
   List<TicketMessage> _messages = [];
+  List<Map<String, dynamic>> _availableTags = [];
   bool _isLoading = false;
   bool _isSending = false;
   bool _isUpdatingStatus = false;
@@ -31,6 +32,7 @@ class TicketDetailsViewModel extends ChangeNotifier {
   });
 
   List<TicketMessage> get messages => _messages;
+  List<Map<String, dynamic>> get availableTags => _availableTags;
   bool get isLoading => _isLoading;
   bool get isSending => _isSending;
   bool get isUpdatingStatus => _isUpdatingStatus;
@@ -42,7 +44,6 @@ class TicketDetailsViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
-    // Critical: Clean up the timer when the screen is closed to prevent background API spam
     _supportTimer?.cancel();
     super.dispose();
   }
@@ -63,6 +64,11 @@ class TicketDetailsViewModel extends ChangeNotifier {
         if (profileData['role'] != null) {
           _currentUserRole = profileData['role'].toString();
         }
+      }
+
+      // Pre-load tags if user is a supporter for efficient editing UI
+      if (isSupporter) {
+        _availableTags = await ticketRepository.getTags();
       }
 
       await loadMessages();
@@ -147,14 +153,30 @@ class TicketDetailsViewModel extends ChangeNotifier {
     }
   }
 
-  /// Evaluates whether the background support timer should be running.
+  /// Synchronizes the ticket's tags directly with the backend.
+  Future<bool> syncTicketTags(List<int> selectedTagIds) async {
+    _isLoading = true; // Block UI locally while saving
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      ticket = await ticketRepository.syncTags(ticket.id, selectedTagIds);
+      return true;
+    } catch (e) {
+      _errorMessage = 'Falha ao sincronizar tags: ${e.toString().replaceAll('Exception: ', '')}';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   void _evaluateTimer() {
     final bool shouldRun = isSupporter &&
         ticket.status == 'in_progress' &&
         ticket.assigneeId == _currentUserId;
 
     if (shouldRun && _supportTimer == null) {
-      // Fires immediately to show the timer instantly on screen, then triggers every 5 secs
       _tickTime();
       _supportTimer = Timer.periodic(const Duration(seconds: 5), (_) => _tickTime());
     } else if (!shouldRun && _supportTimer != null) {
@@ -163,7 +185,6 @@ class TicketDetailsViewModel extends ChangeNotifier {
     }
   }
 
-  /// Sends the background tick to the API and updates local UI.
   Future<void> _tickTime() async {
     try {
       final response = await ticketRepository.tickTime(ticket.id, {});
@@ -181,7 +202,6 @@ class TicketDetailsViewModel extends ChangeNotifier {
     }
   }
 
-  /// Helper to convert raw seconds back to HH:MM:SS format
   String _formatSeconds(int totalSeconds) {
     if (totalSeconds < 0) totalSeconds = 0;
     final hours = totalSeconds ~/ 3600;

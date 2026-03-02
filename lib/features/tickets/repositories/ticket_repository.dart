@@ -14,35 +14,60 @@ class TicketRepository {
   /// Initializes the TicketRepository with the required [apiClient].
   TicketRepository({required this.apiClient});
 
+  /// Helper method to safely extract a List from API responses.
+  /// It automatically handles both direct Lists and Laravel Paginated objects.
+  List<dynamic> _extractDataList(Map<String, dynamic> response) {
+    dynamic data = response.containsKey('data') ? response['data'] : response;
+
+    // Detecta se é um objeto de Paginação do Laravel (contém uma chave 'data' aninhada que é uma Lista)
+    if (data is Map && data.containsKey('data') && data['data'] is List) {
+      return data['data'] as List<dynamic>;
+    }
+
+    // Se já for uma lista direta
+    if (data is List) {
+      return data;
+    }
+
+    // Fallback de segurança
+    if (data is Map) {
+      return data.values.toList();
+    }
+
+    return [];
+  }
+
   /// Retrieves a list of available customers for support agents.
   /// * Returns a [List] of [Map] containing customer details.
   Future<List<Map<String, dynamic>>> getCustomers() async {
     final Map<String, dynamic> response = await apiClient.get('/customers');
-    
-    final List<dynamic> dataList = response.containsKey('data') 
-        ? response['data'] 
-        : response.values.toList();
+    final List<dynamic> dataList = _extractDataList(response);
+        
+    return dataList.cast<Map<String, dynamic>>();
+  }
+
+  /// Retrieves a list of available tags for support agents.
+  /// * Returns a [List] of [Map] containing tag details.
+  Future<List<Map<String, dynamic>>> getTags() async {
+    final Map<String, dynamic> response = await apiClient.get('/tags');
+    final List<dynamic> dataList = _extractDataList(response);
         
     return dataList.cast<Map<String, dynamic>>();
   }
 
   /// Retrieves all tickets relevant to the authenticated user, optionally applying filters.
-  /// * [filters] A map of query parameters (e.g., search, status, customers, assignees).
+  /// * [filters] A map of query parameters (e.g., search, status, customers, assignees, tags).
   /// Returns a [List] of [Ticket] objects.
   Future<List<Ticket>> getTickets({Map<String, dynamic>? filters}) async {
     String path = '/tickets';
     
     if (filters != null && filters.isNotEmpty) {
-      // Build query string manually assuming ApiClient.get might just append it
       final queryString = Uri(queryParameters: filters.map((k, v) => MapEntry(k, v.toString()))).query;
       path = '$path?$queryString';
     }
 
     final Map<String, dynamic> response = await apiClient.get(path);
-    
-    final List<dynamic> dataList = response.containsKey('data') 
-        ? response['data'] 
-        : response.values.toList();
+    final List<dynamic> dataList = _extractDataList(response);
         
     return dataList.map((json) => Ticket.fromJson(json as Map<String, dynamic>)).toList();
   }
@@ -110,6 +135,26 @@ class TicketRepository {
     
     final data = response.containsKey('data') ? response['data'] : response;
     return Ticket.fromJson(data as Map<String, dynamic>);
+  }
+
+  /// Synchronizes the tags for a specific ticket.
+  /// * [ticketId] The unique identifier of the ticket.
+  /// * [tagIds] A list of tag IDs to associate with the ticket.
+  /// Returns the updated [Ticket].
+  Future<Ticket> syncTags(int ticketId, List<int> tagIds) async {
+    final Map<String, dynamic> response = await apiClient.put(
+      '/tickets/$ticketId/tags',
+      data: {'tags': tagIds},
+    );
+
+    final data = response.containsKey('data') ? response['data'] : response;
+    return Ticket.fromJson(data as Map<String, dynamic>);
+  }
+
+  /// Deletes a specific ticket from the system.
+  /// * [ticketId] The unique identifier of the ticket.
+  Future<void> deleteTicket(int ticketId) async {
+    await apiClient.delete('/tickets/$ticketId');
   }
 
   /// Sends a new message within a specific ticket thread, optionally including a cross-platform file attachment.

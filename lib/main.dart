@@ -1,8 +1,9 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_core/firebase_core.dart'; // Adicionado para inicializar o Firebase Core
-import 'firebase_options.dart'; // As opções de plataforma geradas pelo FlutterFire CLI
+import 'package:firebase_core/firebase_core.dart'; 
+import 'firebase_options.dart'; 
 
 import 'core/network/api_client.dart';
 import 'core/theme/theme_controller.dart';
@@ -15,25 +16,19 @@ import 'features/tickets/repositories/ticket_repository.dart';
 /// Application entry point. Ensures all global dependencies are initialized
 /// before the widget tree is mounted.
 void main() async {
-  // Required to interact with the Flutter engine before runApp is called
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase before any UI rendering starts
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Initialize Core Dependencies
   final prefs = await SharedPreferences.getInstance();
   final dio = Dio();
   
-  // Initialize Architecture Layers
   final apiClient = ApiClient(dio, prefs);
   
-  // Initialize Theme Controller globally
   ThemeController().initialize(prefs);
   
-  // Injecting dependencies using named parameters as defined in our refactored repositories
   final authRepository = AuthRepository(apiClient: apiClient, prefs: prefs);
   final ticketRepository = TicketRepository(apiClient: apiClient);
   final profileRepository = ProfileRepository(apiClient: apiClient);
@@ -49,8 +44,8 @@ void main() async {
 }
 
 /// The root widget of the application.
-/// It dictates the global theme and initial routing logic based on authentication state.
-class SupportTicketsApp extends StatelessWidget {
+/// Converted to StatefulWidget to manage global navigation and the authentication stream.
+class SupportTicketsApp extends StatefulWidget {
   final AuthRepository authRepository;
   final TicketRepository ticketRepository;
   final ProfileRepository profileRepository;
@@ -65,16 +60,57 @@ class SupportTicketsApp extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    // Check if the user is already authenticated
-    final hasToken = prefs.getString(ApiClient.tokenKey) != null && 
-                     prefs.getString(ApiClient.tokenKey)!.isNotEmpty;
+  State<SupportTicketsApp> createState() => _SupportTicketsAppState();
+}
 
-    // ListenableBuilder listens to theme changes and rebuilds the app instantly
+class _SupportTicketsAppState extends State<SupportTicketsApp> {
+  /// Global navigator key allows us to perform navigation outside of standard UI flows
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  late StreamSubscription<bool> _authSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen to global unauthenticated events (like 401 Token Expired)
+    _authSubscription = ApiClient.unauthenticatedStream.stream.listen((isUnauthenticated) {
+      if (isUnauthenticated) {
+        _forceLogoutRedirect();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription.cancel();
+    super.dispose();
+  }
+
+  /// Clears the backstack and securely redirects the user to the login screen
+  void _forceLogoutRedirect() {
+    if (_navigatorKey.currentState != null) {
+      _navigatorKey.currentState!.pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => LoginScreen(
+            authRepository: widget.authRepository,
+            ticketRepository: widget.ticketRepository,
+            profileRepository: widget.profileRepository,
+          ),
+        ),
+        (route) => false,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasToken = widget.prefs.getString(ApiClient.tokenKey) != null && 
+                     widget.prefs.getString(ApiClient.tokenKey)!.isNotEmpty;
+
     return ListenableBuilder(
       listenable: ThemeController(),
       builder: (context, _) {
         return MaterialApp(
+          navigatorKey: _navigatorKey, // Bind the global navigator key
           title: 'Support Tickets',
           debugShowCheckedModeBanner: false,
           themeMode: ThemeController().themeMode,
@@ -94,14 +130,14 @@ class SupportTicketsApp extends StatelessWidget {
           ),
           home: hasToken
               ? DashboardScreen(
-                  authRepository: authRepository,
-                  ticketRepository: ticketRepository,
-                  profileRepository: profileRepository,
+                  authRepository: widget.authRepository,
+                  ticketRepository: widget.ticketRepository,
+                  profileRepository: widget.profileRepository,
                 )
               : LoginScreen(
-                  authRepository: authRepository,
-                  ticketRepository: ticketRepository,
-                  profileRepository: profileRepository,
+                  authRepository: widget.authRepository,
+                  ticketRepository: widget.ticketRepository,
+                  profileRepository: widget.profileRepository,
                 ),
         );
       }
