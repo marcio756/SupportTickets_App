@@ -3,12 +3,18 @@ import '../../features/auth/repositories/auth_repository.dart';
 import '../../features/profile/repositories/profile_repository.dart';
 import '../../features/tickets/repositories/ticket_repository.dart';
 import '../../features/notifications/repositories/notification_repository.dart';
+import '../../features/tags/repositories/tag_repository.dart';
+import '../../features/activity_logs/repositories/activity_log_repository.dart';
+
 import '../../features/auth/ui/login_screen.dart';
 import '../../features/tickets/ui/ticket_list_screen.dart';
 import '../../features/dashboard/ui/dashboard_screen.dart';
 import '../../features/users/ui/user_management_screen.dart';
 import '../../features/profile/ui/profile_screen.dart';
 import '../../features/notifications/ui/notifications_screen.dart';
+import '../../features/tags/ui/tag_management_screen.dart';
+import '../../features/activity_logs/ui/components/activity_log_screen.dart';
+
 import '../theme/theme_controller.dart';
 
 class AppDrawer extends StatefulWidget {
@@ -32,7 +38,7 @@ class AppDrawer extends StatefulWidget {
 class _AppDrawerState extends State<AppDrawer> {
   String _userName = 'Loading...';
   String _userEmail = '';
-  String _userRole = ''; // State to store the user role and manage permissions
+  String _userRole = ''; 
   int _unreadNotifications = 0;
 
   @override
@@ -42,7 +48,6 @@ class _AppDrawerState extends State<AppDrawer> {
     _loadUnreadNotificationsCount();
   }
 
-  /// Fetches the user profile and updates local state, including role-based access control flags.
   Future<void> _loadProfile() async {
     try {
       final profile = await widget.profileRepository.getProfile();
@@ -59,7 +64,6 @@ class _AppDrawerState extends State<AppDrawer> {
     }
   }
 
-  /// Fetches active notifications from the API to determine the unread badge count.
   Future<void> _loadUnreadNotificationsCount() async {
     try {
       final notificationRepo = NotificationRepository(apiClient: widget.authRepository.apiClient);
@@ -77,7 +81,6 @@ class _AppDrawerState extends State<AppDrawer> {
     }
   }
 
-  /// Handles the logout process and cleans the navigation stack.
   Future<void> _handleLogout(BuildContext context) async {
     try {
       await widget.authRepository.logout();
@@ -99,7 +102,6 @@ class _AppDrawerState extends State<AppDrawer> {
     }
   }
 
-  /// Replaces the current screen if the route is different, otherwise just closes the drawer.
   void _navigateTo(String route, Widget screen) {
     if (widget.currentRoute == route) {
       Navigator.pop(context);
@@ -173,16 +175,37 @@ class _AppDrawerState extends State<AppDrawer> {
                     authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
                   )),
                 ),
-                // Only render the Users menu item if the user is NOT a customer
-                if (_userRole != 'customer' && _userRole.isNotEmpty)
+                if (_userRole != 'customer' && _userRole.isNotEmpty) ...[
+                  const Divider(),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 4.0),
+                    child: Text('Administração', style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold)),
+                  ),
                   _buildNavItem(
                     icon: Icons.people_alt_rounded,
-                    title: 'Users',
+                    title: 'Utilizadores',
                     route: 'Users',
                     onTap: () => _navigateTo('Users', UserManagementScreen(
                       authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
                     )),
                   ),
+                  _buildNavItem(
+                    icon: Icons.label_rounded,
+                    title: 'Gestão de Tags',
+                    route: 'Tags',
+                    onTap: () => _navigateTo('Tags', TagManagementScreen(
+                      repository: TagRepository(apiClient: widget.authRepository.apiClient),
+                    )),
+                  ),
+                  _buildNavItem(
+                    icon: Icons.history_rounded,
+                    title: 'Logs de Atividade',
+                    route: 'Logs',
+                    onTap: () => _navigateTo('Logs', ActivityLogScreen(
+                      repository: ActivityLogRepository(apiClient: widget.authRepository.apiClient),
+                    )),
+                  ),
+                ],
               ],
             ),
           ),
@@ -207,7 +230,6 @@ class _AppDrawerState extends State<AppDrawer> {
     );
   }
 
-  /// Helper component to build a consistent navigation tile.
   Widget _buildNavItem({
     required IconData icon, 
     required String title, 

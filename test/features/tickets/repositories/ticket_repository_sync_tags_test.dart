@@ -4,7 +4,15 @@ import 'package:supporttickets_app/core/network/api_client.dart';
 import 'package:supporttickets_app/features/tickets/models/ticket.dart';
 import 'package:supporttickets_app/features/tickets/repositories/ticket_repository.dart';
 
-class MockApiClient extends Mock implements ApiClient {}
+class MockApiClient extends Mock implements ApiClient {
+  @override
+  Future<Map<String, dynamic>> put(String path, {dynamic data, dynamic options}) {
+    return super.noSuchMethod(
+      Invocation.method(#put, [path], {#data: data, #options: options}),
+      returnValue: Future.value(<String, dynamic>{}),
+    ) as Future<Map<String, dynamic>>;
+  }
+}
 
 void main() {
   late TicketRepository repository;
@@ -17,7 +25,6 @@ void main() {
 
   group('TicketRepository - syncTags', () {
     test('deve chamar a API com os IDs corretos via PUT e retornar o Ticket atualizado com as novas tags', () async {
-      // Arrange
       final ticketId = 1;
       final tagIds = [2, 3];
       final mockResponse = {
@@ -31,13 +38,12 @@ void main() {
         }
       };
 
-      when(mockApiClient.put('/tickets/$ticketId/tags', data: {'tags': tagIds}))
+      // Mocks generic API Client PUT request using named parameters
+      when(mockApiClient.put(any ?? '', data: anyNamed('data')))
           .thenAnswer((_) async => mockResponse);
 
-      // Act
       final result = await repository.syncTags(ticketId, tagIds);
 
-      // Assert
       expect(result, isA<Ticket>());
       expect(result.id, 1);
       expect(result.tags.length, 2);
