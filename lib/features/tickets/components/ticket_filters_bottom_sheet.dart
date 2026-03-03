@@ -66,6 +66,23 @@ class TicketFiltersBottomSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
+                DropdownButtonFormField<String>(
+                  initialValue: viewModel.sourceFilter,
+                  decoration: InputDecoration(
+                    labelText: 'Source Channel',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    filled: true,
+                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: null, child: Text('All Sources')),
+                    DropdownMenuItem(value: 'web', child: Text('Web / App')),
+                    DropdownMenuItem(value: 'email', child: Text('Email')),
+                  ],
+                  onChanged: (value) => viewModel.setSourceFilter(value),
+                ),
+                const SizedBox(height: 16),
+
                 if (viewModel.customers.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),

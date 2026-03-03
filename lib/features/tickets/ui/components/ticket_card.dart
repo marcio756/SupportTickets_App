@@ -67,8 +67,6 @@ class TicketCard extends StatelessWidget {
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        // Uses withValues(alpha: 0.5) instead of the deprecated withOpacity 
-                        // to prevent color precision loss across different color spaces
                         color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(
@@ -92,6 +90,20 @@ class TicketCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  // Indicates if the ticket was created via Email
+                  if (ticket.source == 'email') ...[
+                    Icon(Icons.email_outlined, size: 14, color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      ticket.senderEmail ?? 'Email',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                  ],
                   Icon(Icons.calendar_today, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(

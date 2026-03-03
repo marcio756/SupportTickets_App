@@ -19,17 +19,14 @@ class TicketRepository {
   List<dynamic> _extractDataList(Map<String, dynamic> response) {
     dynamic data = response.containsKey('data') ? response['data'] : response;
 
-    // Detecta se é um objeto de Paginação do Laravel (contém uma chave 'data' aninhada que é uma Lista)
     if (data is Map && data.containsKey('data') && data['data'] is List) {
       return data['data'] as List<dynamic>;
     }
 
-    // Se já for uma lista direta
     if (data is List) {
       return data;
     }
 
-    // Fallback de segurança
     if (data is Map) {
       return data.values.toList();
     }
@@ -37,8 +34,13 @@ class TicketRepository {
     return [];
   }
 
+  /// Triggers manual synchronization of support emails via IMAP.
+  /// Useful for mobile pull-to-refresh actions.
+  Future<void> fetchEmails() async {
+    await apiClient.post('/emails/fetch');
+  }
+
   /// Retrieves a list of available customers for support agents.
-  /// * Returns a [List] of [Map] containing customer details.
   Future<List<Map<String, dynamic>>> getCustomers() async {
     final Map<String, dynamic> response = await apiClient.get('/customers');
     final List<dynamic> dataList = _extractDataList(response);
@@ -47,7 +49,6 @@ class TicketRepository {
   }
 
   /// Retrieves a list of available tags for support agents.
-  /// * Returns a [List] of [Map] containing tag details.
   Future<List<Map<String, dynamic>>> getTags() async {
     final Map<String, dynamic> response = await apiClient.get('/tags');
     final List<dynamic> dataList = _extractDataList(response);
@@ -56,8 +57,6 @@ class TicketRepository {
   }
 
   /// Retrieves all tickets relevant to the authenticated user, optionally applying filters.
-  /// * [filters] A map of query parameters (e.g., search, status, customers, assignees, tags).
-  /// Returns a [List] of [Ticket] objects.
   Future<List<Ticket>> getTickets({Map<String, dynamic>? filters}) async {
     String path = '/tickets';
     
@@ -73,8 +72,6 @@ class TicketRepository {
   }
 
   /// Retrieves a specific ticket by its ID.
-  /// * [ticketId] The unique identifier of the ticket.
-  /// Returns a [Ticket] object.
   Future<Ticket> getTicket(int ticketId) async {
     final Map<String, dynamic> response = await apiClient.get('/tickets/$ticketId');
     final data = response.containsKey('data') ? response['data'] : response;
@@ -83,23 +80,24 @@ class TicketRepository {
   }
 
   /// Retrieves all messages associated with a specific ticket thread.
-  /// * [ticketId] The unique identifier of the ticket.
-  /// [userId] Optional current user ID to determine message ownership (isFromMe).
-  /// Returns a [List] of [TicketMessage] objects.
+  /// Extracts the parent ticket's email to serve as fallback for unmapped external messages.
   Future<List<TicketMessage>> getTicketMessages(int ticketId, [int? userId]) async {
     final Map<String, dynamic> response = await apiClient.get('/tickets/$ticketId');
     final data = response.containsKey('data') ? response['data'] : response;
     
+    final String? ticketSenderEmail = data['sender_email'] as String?;
     final List<dynamic> messages = data['messages'] ?? [];
-    return messages.map((m) => TicketMessage.fromJson(m as Map<String, dynamic>, userId ?? 0)).toList();
+    
+    return messages.map((m) => TicketMessage.fromJson(
+      m as Map<String, dynamic>, 
+      userId ?? 0,
+      fallbackEmail: ticketSenderEmail,
+    )).toList();
   }
 
   /// Creates a new support ticket in the system.
-  /// * [title] The subject of the ticket.
-  /// [description] The detailed issue description (sent as 'message').
-  /// [customerId] Optional customer ID. Required if the creator is a support agent.
-  /// Returns the newly created [Ticket].
-  Future<Ticket> createTicket(String title, String description, {int? customerId}) async {
+  /// Validates between registered customers and external email users.
+  Future<Ticket> createTicket(String title, String description, {int? customerId, String? senderEmail}) async {
     final Map<String, dynamic> payload = {
       'title': title,
       'message': description, 
@@ -107,6 +105,8 @@ class TicketRepository {
 
     if (customerId != null) {
       payload['customer_id'] = customerId;
+    } else if (senderEmail != null && senderEmail.isNotEmpty) {
+      payload['sender_email'] = senderEmail;
     }
 
     final Map<String, dynamic> response = await apiClient.post('/tickets', data: payload);
@@ -116,17 +116,11 @@ class TicketRepository {
   }
 
   /// Assigns an existing ticket to the authenticated support agent.
-  /// * [ticketId] The unique identifier of the ticket.
-  /// [data] Additional data for the assignment process.
-  /// Returns a [Map] containing the API response.
   Future<Map<String, dynamic>> assignTicket(int ticketId, Map<String, dynamic> data) async {
     return await apiClient.post('/tickets/$ticketId/assign', data: data);
   }
 
   /// Updates the operational status of a specific ticket.
-  /// * [ticketId] The unique identifier of the ticket.
-  /// [status] The new status string (e.g., 'open', 'in_progress', 'resolved').
-  /// Returns the updated [Ticket].
   Future<Ticket> updateTicketStatus(int ticketId, String status) async {
     final Map<String, dynamic> response = await apiClient.patch(
       '/tickets/$ticketId/status', 
@@ -138,9 +132,6 @@ class TicketRepository {
   }
 
   /// Synchronizes the tags for a specific ticket.
-  /// * [ticketId] The unique identifier of the ticket.
-  /// * [tagIds] A list of tag IDs to associate with the ticket.
-  /// Returns the updated [Ticket].
   Future<Ticket> syncTags(int ticketId, List<int> tagIds) async {
     final Map<String, dynamic> response = await apiClient.put(
       '/tickets/$ticketId/tags',
@@ -152,17 +143,11 @@ class TicketRepository {
   }
 
   /// Deletes a specific ticket from the system.
-  /// * [ticketId] The unique identifier of the ticket.
   Future<void> deleteTicket(int ticketId) async {
     await apiClient.delete('/tickets/$ticketId');
   }
 
-  /// Sends a new message within a specific ticket thread, optionally including a cross-platform file attachment.
-  /// * [ticketId] The unique identifier of the ticket.
-  /// [message] The message content.
-  /// [userId] Optional current user ID for ownership check.
-  /// [attachment] Optional [PlatformFile] containing bytes or path.
-  /// Returns the newly created [TicketMessage].
+  /// Sends a new message within a specific ticket thread.
   Future<TicketMessage> sendMessage(int ticketId, String? message, {int? userId, PlatformFile? attachment}) async {
     dynamic payload;
     Options? requestOptions;
@@ -170,7 +155,6 @@ class TicketRepository {
     if (attachment != null) {
       MultipartFile multipartFile;
 
-      // Platform-agnostic file processing: Prioritize bytes for Web, fallback to path for Native Mobile
       if (kIsWeb || attachment.bytes != null) {
         multipartFile = MultipartFile.fromBytes(
           attachment.bytes!, 
@@ -199,20 +183,22 @@ class TicketRepository {
     );
     
     final ticketData = response.containsKey('data') ? response['data'] : response;
+    final String? ticketSenderEmail = ticketData['sender_email'] as String?;
     final List<dynamic> messages = ticketData['messages'] ?? [];
     
     if (messages.isNotEmpty) {
       final lastMessage = messages.last;
-      return TicketMessage.fromJson(lastMessage as Map<String, dynamic>, userId ?? 0);
+      return TicketMessage.fromJson(
+        lastMessage as Map<String, dynamic>, 
+        userId ?? 0,
+        fallbackEmail: ticketSenderEmail,
+      );
     }
     
-    throw Exception('Mensagem enviada, mas não foi devolvida pela API.');
+    throw Exception('Message sent but not returned by API.');
   }
 
   /// Submits a request to deduct or track support time for a specific ticket.
-  /// * [ticketId] The unique identifier of the ticket.
-  /// [data] Payload containing timing information.
-  /// Returns a [Map] containing the API response.
   Future<Map<String, dynamic>> tickTime(int ticketId, Map<String, dynamic> data) async {
     return await apiClient.post('/tickets/$ticketId/tick', data: data);
   }

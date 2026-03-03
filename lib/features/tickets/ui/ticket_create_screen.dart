@@ -20,6 +20,7 @@ class _TicketCreateScreenState extends State<TicketCreateScreen> {
   
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -35,6 +36,7 @@ class _TicketCreateScreenState extends State<TicketCreateScreen> {
     _viewModel.dispose();
     _titleController.dispose();
     _descriptionController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -64,7 +66,11 @@ class _TicketCreateScreenState extends State<TicketCreateScreen> {
   void _submitForm() {
     FocusScope.of(context).unfocus();
     if (_formKey.currentState!.validate()) {
-      _viewModel.createTicket(_titleController.text, _descriptionController.text);
+      _viewModel.createTicket(
+        _titleController.text, 
+        _descriptionController.text,
+        senderEmail: _emailController.text,
+      );
     }
   }
 
@@ -85,115 +91,139 @@ class _TicketCreateScreenState extends State<TicketCreateScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Form(
               key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Describe your issue',
-                    style: TextStyle(
-                      fontSize: 18, 
-                      fontWeight: FontWeight.bold, 
-                      color: colorScheme.onSurface
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  if (_viewModel.isLoadingCustomers)
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 16.0),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (_viewModel.customers.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: DropdownButtonFormField<int>(
-                        initialValue: _viewModel.selectedCustomerId,
-                        decoration: InputDecoration(
-                          labelText: 'Select Customer',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          filled: true,
-                          fillColor: colorScheme.surfaceContainerHighest,
-                        ),
-                        items: _viewModel.customers.map((customer) {
-                          return DropdownMenuItem<int>(
-                            value: customer['id'] as int,
-                            child: Text(customer['name'] as String),
-                          );
-                        }).toList(),
-                        onChanged: _viewModel.isLoading ? null : (value) {
-                          _viewModel.setSelectedCustomer(value);
-                        },
-                        validator: (value) {
-                          if (value == null) return 'Please select a customer.';
-                          return null;
-                        },
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Describe your issue',
+                      style: TextStyle(
+                        fontSize: 18, 
+                        fontWeight: FontWeight.bold, 
+                        color: colorScheme.onSurface
                       ),
                     ),
-
-                  TextFormField(
-                    controller: _titleController,
-                    enabled: !_viewModel.isLoading,
-                    decoration: InputDecoration(
-                      labelText: 'Issue Title',
-                      hintText: 'e.g., Cannot access account',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      filled: true,
-                      fillColor: colorScheme.surfaceContainerHighest,
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) return 'Please enter a title.';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  TextFormField(
-                    controller: _descriptionController,
-                    enabled: !_viewModel.isLoading,
-                    maxLines: 5,
-                    decoration: InputDecoration(
-                      labelText: 'Detailed Description',
-                      hintText: 'Explain the issue step by step...',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      alignLabelWithHint: true,
-                      filled: true,
-                      fillColor: colorScheme.surfaceContainerHighest,
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) return 'Please enter a description.';
-                      return null;
-                    },
-                  ),
-                  const Spacer(),
-                  
-                  SizedBox(
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _viewModel.isLoading ? null : _submitForm,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: colorScheme.primary,
-                        foregroundColor: colorScheme.onPrimary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: _viewModel.isLoading
-                          ? SizedBox(
-                              width: 24, 
-                              height: 24, 
-                              child: CircularProgressIndicator(
-                                color: colorScheme.onPrimary, 
-                                strokeWidth: 2
-                              )
-                            )
-                          : const Text(
-                              'Submit Ticket', 
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                    const SizedBox(height: 16),
+                    
+                    if (_viewModel.isLoadingCustomers)
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 16.0),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (_viewModel.customers.isNotEmpty)
+                      Column(
+                        children: [
+                          DropdownButtonFormField<int>(
+                            initialValue: _viewModel.selectedCustomerId,
+                            decoration: InputDecoration(
+                              labelText: 'Select Customer',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              filled: true,
+                              fillColor: colorScheme.surfaceContainerHighest,
                             ),
+                            items: _viewModel.customers.map((customer) {
+                              return DropdownMenuItem<int>(
+                                value: customer['id'] as int,
+                                child: Text(customer['name'] as String),
+                              );
+                            }).toList(),
+                            onChanged: _viewModel.isLoading ? null : (value) {
+                              _viewModel.setSelectedCustomer(value);
+                              // Clear email when choosing a customer to avoid conflict
+                              _emailController.clear();
+                            },
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12.0),
+                            child: Text('OR', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                          ),
+                          TextFormField(
+                            controller: _emailController,
+                            enabled: !_viewModel.isLoading,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: InputDecoration(
+                              labelText: 'External Email Address',
+                              hintText: 'user@example.com (Unregistered)',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              filled: true,
+                              fillColor: colorScheme.surfaceContainerHighest,
+                            ),
+                            onChanged: (value) {
+                              // Reset Dropdown if user starts typing an email
+                              if (value.isNotEmpty && _viewModel.selectedCustomerId != null) {
+                                _viewModel.setSelectedCustomer(null);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                
+                    TextFormField(
+                      controller: _titleController,
+                      enabled: !_viewModel.isLoading,
+                      decoration: InputDecoration(
+                        labelText: 'Issue Title',
+                        hintText: 'e.g., Cannot access account',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        filled: true,
+                        fillColor: colorScheme.surfaceContainerHighest,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) return 'Please enter a title.';
+                        return null;
+                      },
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
+                    const SizedBox(height: 16),
+                    
+                    TextFormField(
+                      controller: _descriptionController,
+                      enabled: !_viewModel.isLoading,
+                      maxLines: 5,
+                      decoration: InputDecoration(
+                        labelText: 'Detailed Description',
+                        hintText: 'Explain the issue step by step...',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        alignLabelWithHint: true,
+                        filled: true,
+                        fillColor: colorScheme.surfaceContainerHighest,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) return 'Please enter a description.';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    SizedBox(
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _viewModel.isLoading ? null : _submitForm,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: colorScheme.onPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: _viewModel.isLoading
+                            ? SizedBox(
+                                width: 24, 
+                                height: 24, 
+                                child: CircularProgressIndicator(
+                                  color: colorScheme.onPrimary, 
+                                  strokeWidth: 2
+                                )
+                              )
+                            : const Text(
+                                'Submit Ticket', 
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
           );

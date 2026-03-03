@@ -160,7 +160,8 @@ class _TicketListScreenState extends State<TicketListScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: _viewModel.loadTickets,
+      // Atualizado para chamar IMAP via API antes de recarregar a view
+      onRefresh: _viewModel.syncEmailsAndLoad,
       child: ListView.builder(
         padding: const EdgeInsets.all(16.0),
         itemCount: _viewModel.tickets.length,

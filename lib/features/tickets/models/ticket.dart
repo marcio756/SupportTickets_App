@@ -13,6 +13,9 @@ class Ticket {
   final String? assigneeName;
   final int? assigneeId;
 
+  final String source;
+  final String? senderEmail;
+
   final List<Map<String, dynamic>> tags;
 
   Ticket({
@@ -26,6 +29,8 @@ class Ticket {
     this.customerId,
     this.assigneeName,
     this.assigneeId,
+    this.source = 'web',
+    this.senderEmail,
     this.tags = const [],
   });
 
@@ -49,6 +54,9 @@ class Ticket {
       assigneeName: json['support']?['name'] as String?,
       assigneeId: json['assigned_to'] as int? ?? json['support']?['id'] as int?,
 
+      source: json['source'] as String? ?? 'web',
+      senderEmail: json['sender_email'] as String?,
+
       tags: (json['tags'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [],
     );
   }
@@ -65,6 +73,8 @@ class Ticket {
     int? customerId,
     String? assigneeName,
     int? assigneeId,
+    String? source,
+    String? senderEmail,
     List<Map<String, dynamic>>? tags,
   }) {
     return Ticket(
@@ -78,6 +88,8 @@ class Ticket {
       customerId: customerId ?? this.customerId,
       assigneeName: assigneeName ?? this.assigneeName,
       assigneeId: assigneeId ?? this.assigneeId,
+      source: source ?? this.source,
+      senderEmail: senderEmail ?? this.senderEmail,
       tags: tags ?? this.tags,
     );
   }

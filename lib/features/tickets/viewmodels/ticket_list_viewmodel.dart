@@ -15,6 +15,7 @@ class TicketListViewModel extends ChangeNotifier {
   // Filter States
   String _searchQuery = '';
   String? _statusFilter;
+  String? _sourceFilter;
   int? _customerFilter;
   String? _assigneeFilter;
   int? _tagFilter;
@@ -40,6 +41,7 @@ class TicketListViewModel extends ChangeNotifier {
   // Getters for filters
   String get searchQuery => _searchQuery;
   String? get statusFilter => _statusFilter;
+  String? get sourceFilter => _sourceFilter;
   int? get customerFilter => _customerFilter;
   String? get assigneeFilter => _assigneeFilter;
   int? get tagFilter => _tagFilter;
@@ -56,6 +58,12 @@ class TicketListViewModel extends ChangeNotifier {
   /// Updates the status filter without automatically triggering a reload.
   void setStatusFilter(String? status) {
     _statusFilter = status;
+    notifyListeners();
+  }
+
+  /// Updates the source filter without automatically triggering a reload.
+  void setSourceFilter(String? source) {
+    _sourceFilter = source;
     notifyListeners();
   }
 
@@ -81,6 +89,7 @@ class TicketListViewModel extends ChangeNotifier {
   void clearFilters() {
     _searchQuery = '';
     _statusFilter = null;
+    _sourceFilter = null;
     _customerFilter = null;
     _assigneeFilter = null;
     _tagFilter = null;
@@ -114,6 +123,7 @@ class TicketListViewModel extends ChangeNotifier {
     return {
       if (_searchQuery.trim().isNotEmpty) 'search': _searchQuery.trim(),
       if (_statusFilter != null) 'status': _statusFilter,
+      if (_sourceFilter != null) 'source': _sourceFilter,
       if (_customerFilter != null) 'customers': _customerFilter.toString(),
       if (_assigneeFilter != null) 'assignees': _assigneeFilter,
       if (_tagFilter != null) 'tags': _tagFilter.toString(),
@@ -134,6 +144,20 @@ class TicketListViewModel extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+  
+  /// Syncs emails via IMAP, swallowing authorization errors (for customers), and then loads tickets.
+  Future<void> syncEmailsAndLoad() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await ticketRepository.fetchEmails();
+    } catch (_) {
+      // Intentionally silent
+    }
+
+    await loadTickets();
   }
 
   /// Deletes a specific ticket and removes it from the local state.

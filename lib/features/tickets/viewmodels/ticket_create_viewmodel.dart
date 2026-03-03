@@ -43,7 +43,6 @@ class TicketCreateViewModel extends ChangeNotifier {
       
       _customers = await ticketRepository.getCustomers();
     } catch (e) {
-      // Se falhar (ex: utilizador não é support), apenas limpamos a lista.
       _customers = [];
     } finally {
       _isLoadingCustomers = false;
@@ -51,41 +50,48 @@ class TicketCreateViewModel extends ChangeNotifier {
     }
   }
 
-  /// Attempts to create a new ticket.
-  /// 
-  /// Validates the input and updates the state accordingly.
-  Future<void> createTicket(String title, String description) async {
-    // 1. Basic validation
+  /// Attempts to create a new ticket, processing either a registered customer or an external email.
+  Future<void> createTicket(String title, String description, {String? senderEmail}) async {
     if (title.trim().isEmpty || description.trim().isEmpty) {
-      _errorMessage = 'O título e a descrição são obrigatórios.';
+      _errorMessage = 'The title and description are required.';
       notifyListeners();
       return;
     }
 
-    if (_customers.isNotEmpty && _selectedCustomerId == null) {
-      _errorMessage = 'Por favor, selecione um cliente para o ticket.';
-      notifyListeners();
-      return;
+    // Logic validation for Support Agents: Needs either a Customer OR an External Email, but not both.
+    if (_customers.isNotEmpty) {
+      bool hasCustomer = _selectedCustomerId != null;
+      bool hasEmail = senderEmail != null && senderEmail.trim().isNotEmpty;
+
+      if (!hasCustomer && !hasEmail) {
+        _errorMessage = 'Please select a customer OR provide an external email address.';
+        notifyListeners();
+        return;
+      }
+
+      if (hasCustomer && hasEmail) {
+        _errorMessage = 'Please select ONLY ONE: a registered customer OR an external email.';
+        notifyListeners();
+        return;
+      }
     }
 
-    // 2. Start loading state
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
-    // 3. API Call
     try {
       await ticketRepository.createTicket(
         title.trim(), 
         description.trim(),
         customerId: _selectedCustomerId,
+        senderEmail: senderEmail?.trim(),
       );
       _isSuccess = true;
     } catch (e) {
-      _errorMessage = 'Erro ao criar ticket: ${e.toString().replaceAll('Exception: ', '')}';
+      _errorMessage = 'Error creating ticket: ${e.toString().replaceAll('Exception: ', '')}';
       _isSuccess = false;
     } finally {
-      // 4. End loading state
       _isLoading = false;
       notifyListeners();
     }

@@ -63,6 +63,15 @@ class MockTicketRepository extends _i1.Mock implements _i5.TicketRepository {
           as _i2.ApiClient);
 
   @override
+  _i6.Future<void> fetchEmails() =>
+      (super.noSuchMethod(
+            Invocation.method(#fetchEmails, []),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
   _i6.Future<List<Map<String, dynamic>>> getCustomers() =>
       (super.noSuchMethod(
             Invocation.method(#getCustomers, []),
@@ -118,12 +127,13 @@ class MockTicketRepository extends _i1.Mock implements _i5.TicketRepository {
     String? title,
     String? description, {
     int? customerId,
+    String? senderEmail,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
               #createTicket,
               [title, description],
-              {#customerId: customerId},
+              {#customerId: customerId, #senderEmail: senderEmail},
             ),
             returnValue: _i6.Future<_i3.Ticket>.value(
               _FakeTicket_1(
@@ -131,7 +141,7 @@ class MockTicketRepository extends _i1.Mock implements _i5.TicketRepository {
                 Invocation.method(
                   #createTicket,
                   [title, description],
-                  {#customerId: customerId},
+                  {#customerId: customerId, #senderEmail: senderEmail},
                 ),
               ),
             ),
