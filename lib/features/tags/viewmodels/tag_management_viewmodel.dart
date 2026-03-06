@@ -22,7 +22,8 @@ class TagManagementViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _tags = await repository.getTags();
+      final rawTags = await repository.getTags();
+      _tags = rawTags.map((json) => Tag.fromJson(json)).toList();
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
     } finally {
@@ -33,7 +34,8 @@ class TagManagementViewModel extends ChangeNotifier {
 
   Future<bool> createTag(String name, String? color) async {
     try {
-      final newTag = await repository.createTag(name, color);
+      final response = await repository.createTag({'name': name, 'color': color});
+      final newTag = Tag.fromJson(response);
       _tags.add(newTag);
       _tags.sort((a, b) => a.name.compareTo(b.name));
       notifyListeners();
@@ -47,7 +49,8 @@ class TagManagementViewModel extends ChangeNotifier {
 
   Future<bool> updateTag(int id, String name, String? color) async {
     try {
-      final updatedTag = await repository.updateTag(id, name, color);
+      final response = await repository.updateTag(id, {'name': name, 'color': color});
+      final updatedTag = Tag.fromJson(response);
       final index = _tags.indexWhere((t) => t.id == id);
       if (index != -1) {
         _tags[index] = updatedTag;

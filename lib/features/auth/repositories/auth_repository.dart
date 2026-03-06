@@ -1,53 +1,52 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/network/api_client.dart';
 
-/// Repository responsible for handling user authentication operations.
+/// Repository responsible for handling authentication and session tokens.
 class AuthRepository {
-  /// The API client used to perform HTTP requests.
+  /// The HTTP client used for network requests.
   final ApiClient apiClient;
   
-  /// Local storage for persisting the authentication token.
+  /// Local storage for saving and clearing the auth token.
   final SharedPreferences prefs;
 
   /// Initializes the AuthRepository.
-  ///
-  /// Requires both [apiClient] for network and [prefs] for token storage.
   AuthRepository({required this.apiClient, required this.prefs});
 
   /// Authenticates a user with the provided credentials.
-  ///
-  /// Returns [true] if successful and saves the token, [false] otherwise.
-  Future<bool> login(String email, String password) async {
-    final Map<String, dynamic> response = await apiClient.post(
-      '/login', 
-      data: {
-        'email': email,
-        'password': password,
-        'device_name': 'mobile_app', // Typically required by Laravel Sanctum
-      }
-    );
-
-    // Extract data wrapper if it exists
-    final data = response.containsKey('data') ? response['data'] : response;
+  /// 
+  /// Returns a map containing the token and user data on success.
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    final response = await apiClient.post('/login', data: {
+      'email': email,
+      'password': password,
+      'device_name': 'mobile_app',
+    });
     
-    if (data != null && data.containsKey('token')) {
-      // Save the token locally to persist the session
-      await prefs.setString(ApiClient.tokenKey, data['token']);
-      return true;
+    // Automatically save token if present in successful response
+    if (response.containsKey('data') && response['data'] is Map) {
+      final data = response['data'] as Map<String, dynamic>;
+      if (data.containsKey('token')) {
+        await prefs.setString(ApiClient.tokenKey, data['token']);
+      }
     }
     
-    return false;
+    return response;
   }
 
-  /// Logs out the current authenticated user and invalidates the session.
-  ///
-  /// Clears the token from local storage regardless of API success.
+  /// Terminates the current session on the backend and clears local auth.
   Future<void> logout() async {
     try {
       await apiClient.post('/logout');
+    } catch (e) {
+      // Ignore API errors on logout to ensure local cleanup still happens
     } finally {
-      // Ensure the local session is always destroyed
       await prefs.remove(ApiClient.tokenKey);
     }
+  }
+
+  /// Registers the Firebase Cloud Messaging token with the backend
+  /// to enable push notifications for the current device.
+  Future<void> registerFcmToken(String token) async {
+    await apiClient.post('/fcm-token', data: {'token': token});
   }
 }

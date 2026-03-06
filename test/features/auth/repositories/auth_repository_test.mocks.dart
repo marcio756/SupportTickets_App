@@ -96,10 +96,15 @@ class MockApiClient extends _i1.Mock implements _i2.ApiClient {
   @override
   _i3.Future<Map<String, dynamic>> delete(
     String? path, {
+    dynamic data,
     _i4.Options? options,
   }) =>
       (super.noSuchMethod(
-            Invocation.method(#delete, [path], {#options: options}),
+            Invocation.method(
+              #delete,
+              [path],
+              {#data: data, #options: options},
+            ),
             returnValue: _i3.Future<Map<String, dynamic>>.value(
               <String, dynamic>{},
             ),

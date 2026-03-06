@@ -22,21 +22,26 @@ void main() {
   });
 
   group('AuthRepository Tests', () {
-    test('Should return true and save token when login is successful', () async {
+    test('Should return response map and save token when login is successful', () async {
       // Arrange
       const token = 'fake_jwt_token';
+      final mockResponse = {
+        'status': 'Success',
+        'data': {'token': token, 'user': {}}
+      };
+      
       when(mockApiClient.post(any, data: anyNamed('data')))
-          .thenAnswer((_) async => {
-                'status': 'Success',
-                'data': {'token': token, 'user': {}}
-              });
+          .thenAnswer((_) async => mockResponse);
       when(mockPrefs.setString(any, any)).thenAnswer((_) async => true);
 
       // Act
       final result = await authRepository.login('test@test.com', 'password');
 
       // Assert
-      expect(result, isTrue);
+      // Agora verificamos se o resultado é o Map esperado, e não apenas um "true"
+      expect(result, equals(mockResponse));
+      expect(result['data']['token'], token);
+      
       verify(mockApiClient.post('/login', data: {
         'email': 'test@test.com', 
         'password': 'password',
@@ -45,16 +50,18 @@ void main() {
       verify(mockPrefs.setString(ApiClient.tokenKey, token)).called(1);
     });
 
-    test('Should return false when API does not return a token', () async {
+    test('Should return error map and not save token when API fails', () async {
       // Arrange
+      final mockResponse = {'message': 'Invalid credentials'};
       when(mockApiClient.post(any, data: anyNamed('data')))
-          .thenAnswer((_) async => {'message': 'Invalid credentials'});
+          .thenAnswer((_) async => mockResponse);
 
       // Act
       final result = await authRepository.login('test@test.com', 'wrongpassword');
 
       // Assert
-      expect(result, isFalse);
+      // Verificamos se devolve o erro da API em vez de um "false"
+      expect(result, equals(mockResponse));
       verifyNever(mockPrefs.setString(any, any));
     });
 

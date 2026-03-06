@@ -41,6 +41,16 @@ class MockWorkSessionRepository extends _i1.Mock
   }
 
   @override
+  _i4.Future<Map<String, dynamic>> getWorkSessions({int? page = 1}) =>
+      (super.noSuchMethod(
+            Invocation.method(#getWorkSessions, [], {#page: page}),
+            returnValue: _i4.Future<Map<String, dynamic>>.value(
+              <String, dynamic>{},
+            ),
+          )
+          as _i4.Future<Map<String, dynamic>>);
+
+  @override
   _i4.Future<_i2.WorkSession?> getCurrentSession() =>
       (super.noSuchMethod(
             Invocation.method(#getCurrentSession, []),
@@ -87,4 +97,31 @@ class MockWorkSessionRepository extends _i1.Mock
             ),
           )
           as _i4.Future<_i2.WorkSession>);
+
+  @override
+  _i4.Future<void> deleteSession(int? sessionId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteSession, [sessionId]),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  _i4.Future<Map<String, dynamic>> getReports({
+    int? page = 1,
+    String? userId,
+    String? date,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#getReports, [], {
+              #page: page,
+              #userId: userId,
+              #date: date,
+            }),
+            returnValue: _i4.Future<Map<String, dynamic>>.value(
+              <String, dynamic>{},
+            ),
+          )
+          as _i4.Future<Map<String, dynamic>>);
 }

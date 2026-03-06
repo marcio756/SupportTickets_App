@@ -271,4 +271,22 @@ class MockProfileRepository extends _i1.Mock implements _i8.ProfileRepository {
             ),
           )
           as _i6.Future<Map<String, dynamic>>);
+
+  @override
+  _i6.Future<void> updatePassword(Map<String, dynamic>? passwordData) =>
+      (super.noSuchMethod(
+            Invocation.method(#updatePassword, [passwordData]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
+  _i6.Future<void> deleteAccount({Map<String, dynamic>? data}) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteAccount, [], {#data: data}),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 }

@@ -1,24 +1,24 @@
 import '../../../core/network/api_client.dart';
 
-/// Repository responsible for handling dashboard statistics and overview data.
+/// Repository responsible for fetching aggregated statistics for the dashboard.
 class DashboardRepository {
-  /// The API client used to perform HTTP requests.
+  /// The HTTP client used for network requests.
   final ApiClient apiClient;
 
   /// Initializes the DashboardRepository.
-  ///
-  /// The [apiClient] parameter is strictly required for network communication.
   DashboardRepository({required this.apiClient});
 
-  /// Fetches the dashboard overview statistics.
-  ///
-  /// Returns a [Map] containing metrics like total tickets, open tickets, etc.
-  Future<Map<String, dynamic>> getDashboardData() async {
-    final Map<String, dynamic> response = await apiClient.get('/dashboard');
+  /// Retrieves dashboard statistics and ranking data.
+  /// 
+  /// The backend automatically serves customer or supporter metrics
+  /// based on the authenticated user's role.
+  Future<Map<String, dynamic>> getDashboardStats() async {
+    final response = await apiClient.get('/dashboard');
     
-    // Extracts the inner data wrapper if it exists (standard Laravel Resource format)
-    return response.containsKey('data') 
-        ? response['data'] as Map<String, dynamic> 
-        : response;
+    // Safely extract the 'data' payload if wrapped by Laravel ApiResponser
+    if (response.containsKey('data')) {
+      return response['data'] as Map<String, dynamic>;
+    }
+    return response;
   }
 }

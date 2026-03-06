@@ -32,12 +32,13 @@ class LoginViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final success = await authRepository.login(email.trim(), password.trim());
+      final response = await authRepository.login(email.trim(), password.trim());
       
-      if (success) {
+      // Determine success based on the payload structure from Laravel
+      if (response.containsKey('data') || response['status'] == 'Success') {
         _isSuccess = true;
       } else {
-        _errorMessage = 'Credenciais inválidas. Tente novamente.';
+        _errorMessage = response['message'] ?? 'Credenciais inválidas. Tente novamente.';
         _isSuccess = false;
       }
     } catch (e) {

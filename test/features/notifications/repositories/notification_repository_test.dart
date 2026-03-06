@@ -65,15 +65,15 @@ void main() {
     });
 
     test('markAllAsRead deve chamar o endpoint correto da API', () async {
-      // Arrange
-      when(mockApiClient.post('/notifications/mark-all-read'))
+      // Arrange - Atualizado para refletir a rota /read-bulk da API Laravel
+      when(mockApiClient.post('/notifications/read-bulk'))
           .thenAnswer((_) async => {'status': 'success'});
 
       // Act
       await repository.markAllAsRead();
 
       // Assert
-      verify(mockApiClient.post('/notifications/mark-all-read')).called(1);
+      verify(mockApiClient.post('/notifications/read-bulk')).called(1);
     });
   });
 }

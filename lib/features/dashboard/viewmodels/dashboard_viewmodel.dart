@@ -26,7 +26,7 @@ class DashboardViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final data = await dashboardRepository.getDashboardData();
+      final data = await dashboardRepository.getDashboardStats();
       
       _metrics = data;
       _isSupportRole = data.containsKey('active_tickets');

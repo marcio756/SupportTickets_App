@@ -65,17 +65,28 @@ class MockAuthRepository extends _i1.Mock implements _i4.AuthRepository {
           as _i3.SharedPreferences);
 
   @override
-  _i5.Future<bool> login(String? email, String? password) =>
+  _i5.Future<Map<String, dynamic>> login(String? email, String? password) =>
       (super.noSuchMethod(
             Invocation.method(#login, [email, password]),
-            returnValue: _i5.Future<bool>.value(false),
+            returnValue: _i5.Future<Map<String, dynamic>>.value(
+              <String, dynamic>{},
+            ),
           )
-          as _i5.Future<bool>);
+          as _i5.Future<Map<String, dynamic>>);
 
   @override
   _i5.Future<void> logout() =>
       (super.noSuchMethod(
             Invocation.method(#logout, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> registerFcmToken(String? token) =>
+      (super.noSuchMethod(
+            Invocation.method(#registerFcmToken, [token]),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )

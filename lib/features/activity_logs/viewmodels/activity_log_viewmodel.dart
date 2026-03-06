@@ -22,7 +22,13 @@ class ActivityLogViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _logs = await repository.getLogs();
+      final response = await repository.getActivityLogs();
+      
+      // Handle potential pagination structures from Laravel ApiResponser
+      final data = response.containsKey('data') ? response['data'] : response;
+      final List<dynamic> rawList = data is Map && data.containsKey('data') ? data['data'] : data;
+      
+      _logs = rawList.map((json) => ActivityLog.fromJson(json as Map<String, dynamic>)).toList();
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
     } finally {

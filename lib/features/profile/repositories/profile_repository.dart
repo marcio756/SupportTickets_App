@@ -1,6 +1,6 @@
 import '../../../core/network/api_client.dart';
 
-/// Repository responsible for handling user profile data.
+/// Repository responsible for handling user profile data and account settings.
 class ProfileRepository {
   /// The API client used to perform HTTP requests.
   final ApiClient apiClient;
@@ -14,7 +14,6 @@ class ProfileRepository {
   ///
   /// Returns a [Map] containing the user data.
   Future<Map<String, dynamic>> getProfile() async {
-    // ApiClient already returns the decoded JSON Map
     return await apiClient.get('/me');
   }
 
@@ -24,5 +23,20 @@ class ProfileRepository {
   /// Returns a [Map] containing the updated user data.
   Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> data) async {
     return await apiClient.put('/me', data: data);
+  }
+
+  /// Updates the authenticated user's password.
+  ///
+  /// Requires the current password for verification and the new password data.
+  Future<void> updatePassword(Map<String, dynamic> passwordData) async {
+    await apiClient.put('/me/password', data: passwordData);
+  }
+
+  /// Deletes the authenticated user's account permanently.
+  ///
+  /// Depending on the backend implementation, it might require sending the current
+  /// password in the [data] map for security validation before deletion.
+  Future<void> deleteAccount({Map<String, dynamic>? data}) async {
+    await apiClient.delete('/me', data: data);
   }
 }

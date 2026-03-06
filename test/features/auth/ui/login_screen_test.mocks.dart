@@ -83,17 +83,28 @@ class MockAuthRepository extends _i1.Mock implements _i6.AuthRepository {
           as _i3.SharedPreferences);
 
   @override
-  _i7.Future<bool> login(String? email, String? password) =>
+  _i7.Future<Map<String, dynamic>> login(String? email, String? password) =>
       (super.noSuchMethod(
             Invocation.method(#login, [email, password]),
-            returnValue: _i7.Future<bool>.value(false),
+            returnValue: _i7.Future<Map<String, dynamic>>.value(
+              <String, dynamic>{},
+            ),
           )
-          as _i7.Future<bool>);
+          as _i7.Future<Map<String, dynamic>>);
 
   @override
   _i7.Future<void> logout() =>
       (super.noSuchMethod(
             Invocation.method(#logout, []),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
+
+  @override
+  _i7.Future<void> registerFcmToken(String? token) =>
+      (super.noSuchMethod(
+            Invocation.method(#registerFcmToken, [token]),
             returnValue: _i7.Future<void>.value(),
             returnValueForMissingStub: _i7.Future<void>.value(),
           )
@@ -325,4 +336,22 @@ class MockProfileRepository extends _i1.Mock implements _i10.ProfileRepository {
             ),
           )
           as _i7.Future<Map<String, dynamic>>);
+
+  @override
+  _i7.Future<void> updatePassword(Map<String, dynamic>? passwordData) =>
+      (super.noSuchMethod(
+            Invocation.method(#updatePassword, [passwordData]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
+
+  @override
+  _i7.Future<void> deleteAccount({Map<String, dynamic>? data}) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteAccount, [], {#data: data}),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 }

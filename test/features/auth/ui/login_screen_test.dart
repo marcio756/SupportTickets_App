@@ -54,8 +54,8 @@ void main() {
     });
 
     testWidgets('Should call repository and show loading state on valid submission', (WidgetTester tester) async {
-      // Usamos um Completer para congelar a thread de execução propositadamente enquanto verificamos o loading visual
-      final completer = Completer<bool>();
+      // Alterado de Completer<bool> para Completer<Map<String, dynamic>> para bater certo com a assinatura atual
+      final completer = Completer<Map<String, dynamic>>();
       when(mockAuthRepository.login('admin@test.com', 'password123'))
           .thenAnswer((_) => completer.future);
 
@@ -71,8 +71,8 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       verify(mockAuthRepository.login('admin@test.com', 'password123')).called(1);
 
-      // Limpeza do completer
-      completer.complete(true);
+      // Limpeza do completer com um Map de sucesso simulado
+      completer.complete({'status': 'Success', 'data': {'token': 'fake_token'}});
     });
   });
 }

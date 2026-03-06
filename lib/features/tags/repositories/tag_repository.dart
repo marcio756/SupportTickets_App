@@ -1,52 +1,45 @@
 import '../../../core/network/api_client.dart';
-import '../models/tag.dart';
 
-/// Repository responsible for CRUD operations on Tags.
+/// Repository responsible for Tag taxonomy management (CRUD).
 class TagRepository {
+  /// The HTTP client used for network requests.
   final ApiClient apiClient;
 
+  /// Initializes the TagRepository.
   TagRepository({required this.apiClient});
 
-  /// Helper method to safely extract a List from paginated API responses.
+  /// Helper to extract data lists handling both direct arrays and paginated objects.
   List<dynamic> _extractDataList(Map<String, dynamic> response) {
-    dynamic data = response.containsKey('data') ? response['data'] : response;
-    if (data is Map && data.containsKey('data') && data['data'] is List) {
-      return data['data'] as List<dynamic>;
+    dynamic payload = response.containsKey('data') ? response['data'] : response;
+    if (payload is Map && payload.containsKey('data') && payload['data'] is List) {
+      return payload['data'] as List<dynamic>;
     }
-    if (data is List) return data;
-    if (data is Map) return data.values.toList();
+    if (payload is List) {
+      return payload;
+    }
     return [];
   }
 
-  /// Fetches all available tags from the server.
-  Future<List<Tag>> getTags() async {
+  /// Retrieves a list of all available tags.
+  Future<List<Map<String, dynamic>>> getTags() async {
     final response = await apiClient.get('/tags');
-    final dataList = _extractDataList(response);
-    return dataList.map((json) => Tag.fromJson(json as Map<String, dynamic>)).toList();
+    return _extractDataList(response).cast<Map<String, dynamic>>();
   }
 
-  /// Creates a new tag.
-  Future<Tag> createTag(String name, String? color) async {
-    final Map<String, dynamic> payload = {'name': name};
-    if (color != null && color.trim().isNotEmpty) payload['color'] = color;
-
-    final response = await apiClient.post('/tags', data: payload);
-    final data = response.containsKey('data') ? response['data'] : response;
-    return Tag.fromJson(data as Map<String, dynamic>);
+  /// Creates a new tag in the system.
+  Future<Map<String, dynamic>> createTag(Map<String, dynamic> tagData) async {
+    final response = await apiClient.post('/tags', data: tagData);
+    return response.containsKey('data') ? response['data'] : response;
   }
 
   /// Updates an existing tag.
-  Future<Tag> updateTag(int id, String name, String? color) async {
-    final Map<String, dynamic> payload = {'name': name};
-    if (color != null && color.trim().isNotEmpty) payload['color'] = color;
-
-    final response = await apiClient.put('/tags/$id', data: payload);
-    final data = response.containsKey('data') ? response['data'] : response;
-    return Tag.fromJson(data as Map<String, dynamic>);
+  Future<Map<String, dynamic>> updateTag(int tagId, Map<String, dynamic> tagData) async {
+    final response = await apiClient.put('/tags/$tagId', data: tagData);
+    return response.containsKey('data') ? response['data'] : response;
   }
 
-  /// Deletes a tag by its ID.
-  Future<void> deleteTag(int id) async {
-    await apiClient.delete('/tags/$id');
+  /// Permanently deletes a specific tag.
+  Future<void> deleteTag(int tagId) async {
+    await apiClient.delete('/tags/$tagId');
   }
 }

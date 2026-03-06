@@ -32,8 +32,8 @@ void main() {
       // Act
       final result = await repository.getReports(page: 2, userId: '10', date: '2026-03-06');
 
-      // Assert
-      expect(result['summary']['total_hours'], equals(8));
+      // Assert - Acedendo corretamente à chave 'data' antes de chegar ao 'summary'
+      expect(result['data']['summary']['total_hours'], equals(8));
       verify(mockApiClient.get(
         '/work-sessions/reports',
         queryParameters: {'page': '2', 'user_id': '10', 'date': '2026-03-06'},

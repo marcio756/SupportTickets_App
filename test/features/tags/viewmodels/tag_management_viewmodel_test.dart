@@ -1,24 +1,31 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:supporttickets_app/features/tags/models/tag.dart';
 import 'package:supporttickets_app/features/tags/repositories/tag_repository.dart';
 import 'package:supporttickets_app/features/tags/viewmodels/tag_management_viewmodel.dart';
 
 class FakeTagRepository extends Fake implements TagRepository {
-  List<Tag> tags = [Tag(id: 1, name: 'Bug', color: '#FF0000')];
+  List<Map<String, dynamic>> tags = [{'id': 1, 'name': 'Bug', 'color': '#FF0000'}];
 
   @override
-  Future<List<Tag>> getTags() async => List.from(tags); // Fixes pointer leak
+  Future<List<Map<String, dynamic>>> getTags() async => List.from(tags);
 
   @override
-  Future<Tag> createTag(String name, String? color) async {
-    final newTag = Tag(id: 2, name: name, color: color);
+  Future<Map<String, dynamic>> createTag(Map<String, dynamic> tagData) async {
+    final newTag = {'id': 2, 'name': tagData['name'], 'color': tagData['color']};
     tags.add(newTag);
     return newTag;
+  }
+  
+  @override
+  Future<Map<String, dynamic>> updateTag(int id, Map<String, dynamic> tagData) async {
+    final updatedTag = {'id': id, 'name': tagData['name'], 'color': tagData['color']};
+    final index = tags.indexWhere((t) => t['id'] == id);
+    if(index != -1) tags[index] = updatedTag;
+    return updatedTag;
   }
 
   @override
   Future<void> deleteTag(int id) async {
-    tags.removeWhere((t) => t.id == id);
+    tags.removeWhere((t) => t['id'] == id);
   }
 }
 

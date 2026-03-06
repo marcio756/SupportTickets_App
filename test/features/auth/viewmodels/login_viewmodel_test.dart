@@ -28,8 +28,9 @@ void main() {
     });
 
     test('Should authenticate successfully', () async {
-      // Arrange
-      when(mockRepo.login('admin@test.com', 'password')).thenAnswer((_) async => true);
+      // Arrange - Simula um JSON de sucesso retornado pela API Laravel
+      when(mockRepo.login('admin@test.com', 'password'))
+          .thenAnswer((_) async => {'status': 'Success', 'data': {'token': 'fake_token'}});
 
       // Act
       await viewModel.login('admin@test.com', 'password');
@@ -42,8 +43,9 @@ void main() {
     });
 
     test('Should show invalid credentials error', () async {
-      // Arrange
-      when(mockRepo.login('user@test.com', 'wrong')).thenAnswer((_) async => false);
+      // Arrange - Simula um JSON de erro
+      when(mockRepo.login('user@test.com', 'wrong'))
+          .thenAnswer((_) async => {'message': 'Credenciais inválidas. Tente novamente.'});
 
       // Act
       await viewModel.login('user@test.com', 'wrong');

@@ -117,10 +117,12 @@ class ApiClient {
   /// Performs a generic DELETE request.
   Future<Map<String, dynamic>> delete(
     String path, {
+    dynamic data,
     Options? options,
   }) async {
     try {
-      final response = await _dio.delete(path, options: options);
+      // O Dio suporta enviar data em pedidos DELETE, permitindo validações no backend
+      final response = await _dio.delete(path, data: data, options: options);
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       throw _handleError(e);

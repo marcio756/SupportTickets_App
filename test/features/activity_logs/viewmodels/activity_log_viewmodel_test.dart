@@ -1,22 +1,23 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:supporttickets_app/features/activity_logs/models/activity_log.dart';
 import 'package:supporttickets_app/features/activity_logs/repositories/activity_log_repository.dart';
 import 'package:supporttickets_app/features/activity_logs/viewmodels/activity_log_viewmodel.dart';
 
 class FakeActivityLogRepository extends Fake implements ActivityLogRepository {
   @override
-  Future<List<ActivityLog>> getLogs() async {
-    return [
-      ActivityLog(
-        id: 1,
-        description: 'created',
-        event: 'created',
-        causer: 'Admin',
-        subjectType: 'Ticket',
-        properties: {'attributes': {'title': 'New Ticket'}},
-        createdAt: DateTime.now(),
-      )
-    ];
+  Future<Map<String, dynamic>> getActivityLogs({int page = 1}) async {
+    return {
+      'data': [
+        {
+          'id': 1,
+          'description': 'created',
+          'event': 'created',
+          'causer': 'Admin',
+          'subject_type': 'Ticket',
+          'properties': {'attributes': {'title': 'New Ticket'}},
+          'created_at': DateTime.now().toIso8601String(),
+        }
+      ]
+    };
   }
 }
 

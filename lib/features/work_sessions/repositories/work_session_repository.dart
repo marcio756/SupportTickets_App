@@ -11,6 +11,14 @@ class WorkSessionRepository {
   /// [apiClient] The HTTP client used to make API requests.
   WorkSessionRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 
+  /// Retrieves a paginated history list of work sessions.
+  Future<Map<String, dynamic>> getWorkSessions({int page = 1}) async {
+    return await _apiClient.get(
+      '/work-sessions', 
+      queryParameters: {'page': page.toString()},
+    );
+  }
+
   /// Retrieves the currently active or paused work session for the authenticated user.
   Future<WorkSession?> getCurrentSession() async {
     final response = await _apiClient.get('/work-sessions/current');
@@ -44,6 +52,11 @@ class WorkSessionRepository {
   Future<WorkSession> endSession() async {
     final response = await _apiClient.post('/work-sessions/end');
     return WorkSession.fromJson(response['data'] as Map<String, dynamic>);
+  }
+
+  /// Permanently deletes a specific work session (Admin/Manager role typically required).
+  Future<void> deleteSession(int sessionId) async {
+    await _apiClient.delete('/work-sessions/$sessionId');
   }
 
   /// Fetches paginated work session reports with optional filters.

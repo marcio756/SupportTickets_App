@@ -117,7 +117,7 @@ class TicketRepository {
 
   /// Assigns an existing ticket to the authenticated support agent.
   Future<Map<String, dynamic>> assignTicket(int ticketId, Map<String, dynamic> data) async {
-    return await apiClient.post('/tickets/$ticketId/assign', data: data);
+    return await apiClient.patch('/tickets/$ticketId/assign', data: data);
   }
 
   /// Updates the operational status of a specific ticket.

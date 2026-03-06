@@ -22,21 +22,13 @@ class NotificationRepository {
     
     List<dynamic> rawList = [];
 
-    // Tenta extrair o payload principal. A Trait ApiResponser (ou similar)
-    // costuma colocar a resposta real dentro de uma chave 'data'.
     dynamic payload = response['data'] ?? response;
 
-    // Lida com a estrutura de paginação do Laravel (LengthAwarePaginator).
-    // O paginador tem a sua própria chave 'data' aninhada que contém a lista de objetos.
     if (payload is Map && payload.containsKey('data') && payload['data'] is List) {
       rawList = payload['data'];
-    } 
-    // Lida com o caso em que o payload já é diretamente uma lista simples.
-    else if (payload is List) {
+    } else if (payload is List) {
       rawList = payload;
-    } 
-    // Fallback original para caso a resposta seja um objeto JSON disperso (chaves soltas).
-    else if (payload is Map) {
+    } else if (payload is Map) {
       payload.forEach((key, value) {
         if (key != 'current_page' && key != 'total' && key != 'links' && value is Map) {
           rawList.add(value);
@@ -48,7 +40,6 @@ class NotificationRepository {
     
     for (var item in rawList) {
       if (item is Map) {
-        // Converte cada notificação usando o model 100% seguro que criámos
         notifications.add(AppNotification.fromJson(Map<String, dynamic>.from(item)));
       }
     }
@@ -65,6 +56,18 @@ class NotificationRepository {
 
   /// Marks all unread notifications for the user as read.
   Future<void> markAllAsRead() async {
-    await apiClient.post('/notifications/mark-all-read');
+    await apiClient.post('/notifications/read-bulk');
+  }
+
+  /// Permanently deletes a specific notification.
+  /// 
+  /// [notificationId] The unique identifier of the notification to delete.
+  Future<void> deleteNotification(String notificationId) async {
+    await apiClient.delete('/notifications/$notificationId');
+  }
+
+  /// Clears (deletes) all notifications for the authenticated user.
+  Future<void> clearAllNotifications() async {
+    await apiClient.post('/notifications/clear');
   }
 }
