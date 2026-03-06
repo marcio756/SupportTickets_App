@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
@@ -44,29 +45,34 @@ void main() {
     testWidgets('Should show validation errors when fields are empty', (WidgetTester tester) async {
       await tester.pumpWidget(createLoginScreen());
 
-      // Changed from 'Entrar' to 'Login'
       await tester.tap(find.text('Login'));
       await tester.pumpAndSettle();
 
       expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('Please enter your email and password.'), findsOneWidget);
+      // Validamos usando a string exata que o LoginViewModel retorna na tua App
+      expect(find.text('Por favor, preencha o e-mail e a palavra-passe.'), findsOneWidget);
     });
 
     testWidgets('Should call repository and show loading state on valid submission', (WidgetTester tester) async {
+      // Usamos um Completer para congelar a thread de execução propositadamente enquanto verificamos o loading visual
+      final completer = Completer<bool>();
       when(mockAuthRepository.login('admin@test.com', 'password123'))
-          .thenAnswer((_) async => Future.delayed(const Duration(milliseconds: 500)));
+          .thenAnswer((_) => completer.future);
 
       await tester.pumpWidget(createLoginScreen());
 
       await tester.enterText(find.byType(TextField).first, 'admin@test.com');
       await tester.enterText(find.byType(TextField).last, 'password123');
 
-      // Changed from 'Entrar' to 'Login'
       await tester.tap(find.text('Login'));
+      // Pump apenas 1 frame sem aguardar a conclusão
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       verify(mockAuthRepository.login('admin@test.com', 'password123')).called(1);
+
+      // Limpeza do completer
+      completer.complete(true);
     });
   });
 }

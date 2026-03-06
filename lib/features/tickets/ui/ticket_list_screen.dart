@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../auth/repositories/auth_repository.dart';
 import '../repositories/ticket_repository.dart';
 import '../../profile/repositories/profile_repository.dart';
+import '../../work_sessions/ui/components/work_session_guard.dart';
 import 'components/ticket_card.dart';
 import '../components/ticket_filters_bottom_sheet.dart';
 import 'ticket_create_screen.dart';
@@ -9,7 +10,6 @@ import 'ticket_details_screen.dart';
 import '../viewmodels/ticket_list_viewmodel.dart';
 import '../../../core/widgets/app_drawer.dart';
 
-/// Screen responsible for listing, filtering and searching tickets.
 class TicketListScreen extends StatefulWidget {
   final AuthRepository authRepository;
   final TicketRepository ticketRepository;
@@ -42,7 +42,6 @@ class _TicketListScreenState extends State<TicketListScreen> {
     super.dispose();
   }
 
-  /// Opens the bottom sheet for advanced ticket filtering.
   void _openFilters() {
     showModalBottomSheet(
       context: context,
@@ -76,35 +75,38 @@ class _TicketListScreenState extends State<TicketListScreen> {
           ),
         ],
       ),
-      body: ListenableBuilder(
-        listenable: _viewModel,
-        builder: (context, _) {
-          return Column(
-            children: [
-              Container(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Search tickets...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
+      body: WorkSessionGuard(
+        profileRepository: widget.profileRepository,
+        child: ListenableBuilder(
+          listenable: _viewModel,
+          builder: (context, _) {
+            return Column(
+              children: [
+                Container(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search tickets...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
                     ),
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    onSubmitted: (value) => _viewModel.setSearchQuery(value),
                   ),
-                  onSubmitted: (value) => _viewModel.setSearchQuery(value),
                 ),
-              ),
-              Expanded(
-                child: _buildContent(),
-              ),
-            ],
-          );
-        },
+                Expanded(
+                  child: _buildContent(),
+                ),
+              ],
+            );
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
@@ -113,7 +115,6 @@ class _TicketListScreenState extends State<TicketListScreen> {
               builder: (_) => TicketCreateScreen(ticketRepository: widget.ticketRepository),
             ),
           );
-          
           if (shouldRefresh == true) {
             _viewModel.loadTickets();
           }
@@ -124,12 +125,8 @@ class _TicketListScreenState extends State<TicketListScreen> {
     );
   }
 
-  /// Builds the main content area based on the view model state.
   Widget _buildContent() {
-    if (_viewModel.isLoading && _viewModel.tickets.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
+    if (_viewModel.isLoading && _viewModel.tickets.isEmpty) return const Center(child: CircularProgressIndicator());
     if (_viewModel.errorMessage != null && _viewModel.tickets.isEmpty) {
       return Center(
         child: Padding(
@@ -143,24 +140,17 @@ class _TicketListScreenState extends State<TicketListScreen> {
               const SizedBox(height: 8),
               Text(_viewModel.errorMessage!, textAlign: TextAlign.center),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _viewModel.loadTickets, 
-                child: const Text('Try Again')
-              ),
+              ElevatedButton(onPressed: _viewModel.loadTickets, child: const Text('Try Again')),
             ],
           ),
         ),
       );
     }
-
     if (_viewModel.tickets.isEmpty) {
-      return Center(
-        child: Text('You have no tickets matching the criteria.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
-      );
+      return Center(child: Text('You have no tickets matching the criteria.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)));
     }
 
     return RefreshIndicator(
-      // Atualizado para chamar IMAP via API antes de recarregar a view
       onRefresh: _viewModel.syncEmailsAndLoad,
       child: ListView.builder(
         padding: const EdgeInsets.all(16.0),

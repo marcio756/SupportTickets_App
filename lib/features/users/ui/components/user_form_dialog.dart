@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 
 class UserFormDialog extends StatefulWidget {
   final Map<String, dynamic>? userMock;
+  final String currentUserRole;
   final Function(Map<String, dynamic>) onSave;
 
-  const UserFormDialog({super.key, this.userMock, required this.onSave});
+  const UserFormDialog({
+    super.key, 
+    this.userMock, 
+    required this.currentUserRole, 
+    required this.onSave
+  });
 
   @override
   State<UserFormDialog> createState() => _UserFormDialogState();
@@ -24,9 +30,13 @@ class _UserFormDialogState extends State<UserFormDialog> {
     _emailController = TextEditingController(text: widget.userMock?['email'] ?? '');
     _passwordController = TextEditingController();
     
-    // Suporta 'support' antigo se houver, mas obriga a inicializar com 'supporter'
-    final initialRole = widget.userMock?['role']?.toString().toLowerCase();
-    _role = (initialRole == 'support' || initialRole == 'supporter') ? 'supporter' : 'customer';
+    // Impede o Supporter de criar/ver algo além de 'customer'
+    if (widget.currentUserRole == 'supporter') {
+      _role = 'customer';
+    } else {
+      final initialRole = widget.userMock?['role']?.toString().toLowerCase();
+      _role = (initialRole == 'support' || initialRole == 'supporter') ? 'supporter' : 'customer';
+    }
   }
 
   @override
@@ -75,16 +85,26 @@ class _UserFormDialogState extends State<UserFormDialog> {
                 validator: (v) => v!.isEmpty || !v.contains('@') ? 'Valid email is required' : null,
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: _role,
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Role'),
-                items: const [
-                  DropdownMenuItem(value: 'customer', child: Text('Customer')),
-                  DropdownMenuItem(value: 'supporter', child: Text('Support')),
-                ],
-                onChanged: (v) => setState(() => _role = v!),
-              ),
+              
+              // Se for o Admin mostra o Dropdown, se for o Supporter bloqueia no Customer
+              widget.currentUserRole == 'supporter'
+                ? TextFormField(
+                    initialValue: 'Customer',
+                    decoration: const InputDecoration(labelText: 'Role'),
+                    enabled: false,
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  )
+                : DropdownButtonFormField<String>(
+                    initialValue: _role,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: 'Role'),
+                    items: const [
+                      DropdownMenuItem(value: 'customer', child: Text('Customer')),
+                      DropdownMenuItem(value: 'supporter', child: Text('Support')),
+                    ],
+                    onChanged: (v) => setState(() => _role = v!),
+                  ),
+                  
               const SizedBox(height: 16),
               TextFormField(
                 controller: _passwordController,

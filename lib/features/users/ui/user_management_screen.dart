@@ -4,6 +4,7 @@ import '../../../core/widgets/app_drawer.dart';
 import '../../auth/repositories/auth_repository.dart';
 import '../../tickets/repositories/ticket_repository.dart';
 import '../../profile/repositories/profile_repository.dart';
+import '../../work_sessions/ui/components/work_session_guard.dart';
 import '../repositories/user_repository.dart';
 import '../viewmodels/user_management_viewmodel.dart';
 import 'components/user_card.dart';
@@ -28,6 +29,8 @@ class UserManagementScreen extends StatefulWidget {
 class _UserManagementScreenState extends State<UserManagementScreen> {
   late final UserManagementViewModel _viewModel;
   Timer? _debounce;
+  String _currentUserRole = 'customer'; // fallback
+  bool _isInit = false;
 
   @override
   void initState() {
@@ -35,7 +38,26 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     _viewModel = UserManagementViewModel(
       userRepository: UserRepository(apiClient: widget.authRepository.apiClient),
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) => _viewModel.fetchUsers());
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    try {
+      final profile = await widget.profileRepository.getProfile();
+      final data = profile.containsKey('data') ? profile['data'] : profile;
+      if (mounted) {
+        setState(() => _currentUserRole = data['role'] ?? 'customer');
+      }
+    } catch (_) {}
+
+    // RBAC: Se for suporte, bloqueia a visão forçando o filtro para 'customer'
+    if (_currentUserRole == 'supporter') {
+      _viewModel.setRoleFilter('customer');
+    } else {
+      _viewModel.fetchUsers();
+    }
+    
+    if (mounted) setState(() => _isInit = true);
   }
 
   @override
@@ -57,6 +79,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       context: context,
       builder: (_) => UserFormDialog(
         userMock: user,
+        currentUserRole: _currentUserRole, // Passamos a Role para o formulário
         onSave: (data) async {
           final success = await _viewModel.saveUser(id: user?['id']?.toString(), data: data);
           if (mounted && success) {
@@ -111,33 +134,38 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         profileRepository: widget.profileRepository,
         currentRoute: 'Users',
       ),
-      body: ListenableBuilder(
-        listenable: _viewModel,
-        builder: (context, _) {
-          return Column(
-            children: [
-              _buildFilters(context),
-              if (_viewModel.isLoading && _viewModel.users.isEmpty)
-                const Expanded(child: Center(child: CircularProgressIndicator()))
-              else if (_viewModel.users.isEmpty)
-                const Expanded(child: Center(child: Text('No users found.')))
-              else
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _viewModel.users.length,
-                    itemBuilder: (context, index) {
-                      final user = _viewModel.users[index];
-                      return UserCard(
-                        userMock: user,
-                        onEdit: () => _showUserForm(user),
-                        onDelete: () => _confirmDelete(user['id'].toString()),
-                      );
-                    },
-                  ),
-                ),
-            ],
-          );
-        },
+      body: WorkSessionGuard(
+        profileRepository: widget.profileRepository,
+        child: !_isInit 
+            ? const Center(child: CircularProgressIndicator()) 
+            : ListenableBuilder(
+                listenable: _viewModel,
+                builder: (context, _) {
+                  return Column(
+                    children: [
+                      _buildFilters(context),
+                      if (_viewModel.isLoading && _viewModel.users.isEmpty)
+                        const Expanded(child: Center(child: CircularProgressIndicator()))
+                      else if (_viewModel.users.isEmpty)
+                        const Expanded(child: Center(child: Text('No users found.')))
+                      else
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: _viewModel.users.length,
+                            itemBuilder: (context, index) {
+                              final user = _viewModel.users[index];
+                              return UserCard(
+                                userMock: user,
+                                onEdit: () => _showUserForm(user),
+                                onDelete: () => _confirmDelete(user['id'].toString()),
+                              );
+                            },
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showUserForm(),
@@ -165,29 +193,32 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               onChanged: _onSearchChanged,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 4,
-            child: DropdownButtonFormField<String>(
-              isExpanded: true,
-              initialValue: _viewModel.selectedRoleFilter,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          
+          // O Supporter não vê o filtro de roles (porque só gere customers)
+          if (_currentUserRole == 'admin') ...[
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 4,
+              child: DropdownButtonFormField<String>(
+                isExpanded: true,
+                initialValue: _viewModel.selectedRoleFilter,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+                  filled: true,
+                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'all', child: Text('All Roles')),
+                  DropdownMenuItem(value: 'customer', child: Text('Customer')),
+                  DropdownMenuItem(value: 'supporter', child: Text('Support')),
+                ],
+                onChanged: (v) {
+                  if (v != null) _viewModel.setRoleFilter(v);
+                },
               ),
-              items: const [
-                DropdownMenuItem(value: 'all', child: Text('All Roles')),
-                DropdownMenuItem(value: 'customer', child: Text('Customer')),
-                // Foi corrigido aqui de 'support' para 'supporter'
-                DropdownMenuItem(value: 'supporter', child: Text('Support')),
-              ],
-              onChanged: (v) {
-                if (v != null) _viewModel.setRoleFilter(v);
-              },
             ),
-          ),
+          ]
         ],
       ),
     );

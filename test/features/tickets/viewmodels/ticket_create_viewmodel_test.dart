@@ -23,7 +23,8 @@ void main() {
       await viewModel.createTicket('', '   ');
 
       // Assert
-      expect(viewModel.errorMessage, 'O título e a descrição são obrigatórios.');
+      // Atualizado para Inglês para dar match com o código de Produção real
+      expect(viewModel.errorMessage, 'The title and description are required.');
       expect(viewModel.isSuccess, isFalse);
       verifyNever(mockRepository.createTicket(any, any));
     });

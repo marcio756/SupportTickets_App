@@ -24,4 +24,26 @@ class UserRepository {
   Future<void> deleteUser(String userId) async {
     await apiClient.delete('/users/$userId');
   }
+
+  /// Fetches a lightweight list of users with the 'customer' role.
+  /// 
+  /// Useful for populating dropdowns during ticket creation.
+  Future<List<Map<String, dynamic>>> getCustomers() async {
+    final response = await apiClient.get('/customers');
+    if (response['data'] == null) {
+      return [];
+    }
+    return List<Map<String, dynamic>>.from(response['data']);
+  }
+
+  /// Fetches a lightweight list of users with the 'supporter' role.
+  /// 
+  /// Useful for populating dropdowns when assigning a ticket.
+  Future<List<Map<String, dynamic>>> getSupporters() async {
+    final response = await apiClient.get('/supporters');
+    if (response['data'] == null) {
+      return [];
+    }
+    return List<Map<String, dynamic>>.from(response['data']);
+  }
 }

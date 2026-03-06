@@ -1,7 +1,9 @@
+import 'package:firebase_core_platform_interface/test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:supporttickets_app/core/network/api_client.dart';
 import 'package:supporttickets_app/features/auth/repositories/auth_repository.dart';
 import 'package:supporttickets_app/features/profile/repositories/profile_repository.dart';
@@ -21,6 +23,14 @@ void main() {
   late MockTicketRepository mockTicketRepository;
   late MockProfileRepository mockProfileRepository;
   late DummyApiClient dummyApiClient;
+
+  // Iniciar o SetupGlobal da framework de testes com a biblioteca oficial do Firebase
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    // Instala um fake Firebase channel oficial compatível com o Pigeon
+    setupFirebaseCoreMocks(); 
+    await Firebase.initializeApp();
+  });
 
   setUp(() {
     mockAuthRepository = MockAuthRepository();

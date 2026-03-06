@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart'; 
 import 'firebase_options.dart'; 
@@ -12,6 +13,8 @@ import 'features/auth/ui/login_screen.dart';
 import 'features/dashboard/ui/dashboard_screen.dart';
 import 'features/profile/repositories/profile_repository.dart';
 import 'features/tickets/repositories/ticket_repository.dart';
+import 'features/work_sessions/repositories/work_session_repository.dart';
+import 'features/work_sessions/viewmodels/work_session_viewmodel.dart';
 
 /// Application entry point. Ensures all global dependencies are initialized
 /// before the widget tree is mounted.
@@ -29,16 +32,23 @@ void main() async {
   
   ThemeController().initialize(prefs);
   
+  // Initialize Repositories
   final authRepository = AuthRepository(apiClient: apiClient, prefs: prefs);
   final ticketRepository = TicketRepository(apiClient: apiClient);
   final profileRepository = ProfileRepository(apiClient: apiClient);
+  final workSessionRepository = WorkSessionRepository(apiClient: apiClient);
 
   runApp(
-    SupportTicketsApp(
-      authRepository: authRepository,
-      ticketRepository: ticketRepository,
-      profileRepository: profileRepository,
-      prefs: prefs,
+    // We inject the WorkSessionViewModel at the root of the app so it persists 
+    // across route changes and drawer toggles.
+    ChangeNotifierProvider(
+      create: (_) => WorkSessionViewModel(repository: workSessionRepository)..loadCurrentSession(),
+      child: SupportTicketsApp(
+        authRepository: authRepository,
+        ticketRepository: ticketRepository,
+        profileRepository: profileRepository,
+        prefs: prefs,
+      ),
     ),
   );
 }

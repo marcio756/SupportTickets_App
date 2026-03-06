@@ -1,18 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:mockito/annotations.dart';
 import 'package:supporttickets_app/core/network/api_client.dart';
 import 'package:supporttickets_app/features/tickets/models/ticket.dart';
 import 'package:supporttickets_app/features/tickets/repositories/ticket_repository.dart';
 
-class MockApiClient extends Mock implements ApiClient {
-  @override
-  Future<Map<String, dynamic>> put(String path, {dynamic data, dynamic options}) {
-    return super.noSuchMethod(
-      Invocation.method(#put, [path], {#data: data, #options: options}),
-      returnValue: Future.value(<String, dynamic>{}),
-    ) as Future<Map<String, dynamic>>;
-  }
-}
+// Agora usamos a geração correta do Mockito para evitar erros do tipo Null Safety ou Argument Matchers
+@GenerateMocks([ApiClient])
+import 'ticket_repository_sync_tags_test.mocks.dart';
 
 void main() {
   late TicketRepository repository;
@@ -38,8 +33,8 @@ void main() {
         }
       };
 
-      // Mocks generic API Client PUT request using named parameters
-      when(mockApiClient.put(any ?? '', data: anyNamed('data')))
+      // Mocks generic API Client PUT request correctly
+      when(mockApiClient.put(any, data: anyNamed('data')))
           .thenAnswer((_) async => mockResponse);
 
       final result = await repository.syncTags(ticketId, tagIds);

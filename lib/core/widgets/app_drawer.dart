@@ -14,6 +14,7 @@ import '../../features/profile/ui/profile_screen.dart';
 import '../../features/notifications/ui/notifications_screen.dart';
 import '../../features/tags/ui/tag_management_screen.dart';
 import '../../features/activity_logs/ui/activity_log_screen.dart';
+import '../../features/work_sessions/ui/components/work_session_timer_widget.dart';
 
 import '../theme/theme_controller.dart';
 
@@ -136,6 +137,13 @@ class _AppDrawerState extends State<AppDrawer> {
               margin: EdgeInsets.zero,
             ),
           ),
+          
+          if (_userRole != 'customer' && _userRole.isNotEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              child: WorkSessionTimerWidget(),
+            ),
+
           Expanded(
             child: ListView(
               padding: const EdgeInsets.only(top: 8.0),
@@ -175,11 +183,13 @@ class _AppDrawerState extends State<AppDrawer> {
                     authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
                   )),
                 ),
-                if (_userRole != 'customer' && _userRole.isNotEmpty) ...[
+                
+                // RBAC: Admins e Supporters
+                if (_userRole == 'admin' || _userRole == 'supporter') ...[
                   const Divider(),
                   Padding(
                     padding: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 4.0),
-                    child: Text('Administration', style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold)),
+                    child: Text('Management', style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold)),
                   ),
                   _buildNavItem(
                     icon: Icons.people_alt_rounded,
@@ -189,6 +199,7 @@ class _AppDrawerState extends State<AppDrawer> {
                       authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
                     )),
                   ),
+                  // Supporter agora também gere Tags
                   _buildNavItem(
                     icon: Icons.label_rounded,
                     title: 'Tag Management',
@@ -200,17 +211,21 @@ class _AppDrawerState extends State<AppDrawer> {
                       profileRepository: widget.profileRepository,
                     )),
                   ),
-                  _buildNavItem(
-                    icon: Icons.history_rounded,
-                    title: 'Activity Logs',
-                    route: 'Logs',
-                    onTap: () => _navigateTo('Logs', ActivityLogScreen(
-                      repository: ActivityLogRepository(apiClient: widget.authRepository.apiClient),
-                      authRepository: widget.authRepository,
-                      ticketRepository: widget.ticketRepository,
-                      profileRepository: widget.profileRepository,
-                    )),
-                  ),
+                  
+                  // Apenas o Admin pode gerir Logs
+                  if (_userRole == 'admin') ...[
+                    _buildNavItem(
+                      icon: Icons.history_rounded,
+                      title: 'Activity Logs',
+                      route: 'Logs',
+                      onTap: () => _navigateTo('Logs', ActivityLogScreen(
+                        repository: ActivityLogRepository(apiClient: widget.authRepository.apiClient),
+                        authRepository: widget.authRepository,
+                        ticketRepository: widget.ticketRepository,
+                        profileRepository: widget.profileRepository,
+                      )),
+                    ),
+                  ],
                 ],
               ],
             ),
@@ -236,13 +251,7 @@ class _AppDrawerState extends State<AppDrawer> {
     );
   }
 
-  Widget _buildNavItem({
-    required IconData icon, 
-    required String title, 
-    required String route, 
-    required VoidCallback onTap,
-    Widget? trailing,
-  }) {
+  Widget _buildNavItem({required IconData icon, required String title, required String route, required VoidCallback onTap, Widget? trailing}) {
     final isSelected = widget.currentRoute == route;
     final colorScheme = Theme.of(context).colorScheme;
     return ListTile(
