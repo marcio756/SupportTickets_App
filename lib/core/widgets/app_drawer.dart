@@ -15,6 +15,7 @@ import '../../features/notifications/ui/notifications_screen.dart';
 import '../../features/tags/ui/tag_management_screen.dart';
 import '../../features/activity_logs/ui/activity_log_screen.dart';
 import '../../features/work_sessions/ui/components/work_session_timer_widget.dart';
+import '../../features/work_sessions/ui/work_session_report_screen.dart';
 
 import '../theme/theme_controller.dart';
 
@@ -191,6 +192,17 @@ class _AppDrawerState extends State<AppDrawer> {
                     padding: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 4.0),
                     child: Text('Management', style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold)),
                   ),
+                  
+                  // NEW: Work Sessions Reports
+                  _buildNavItem(
+                    icon: Icons.history_toggle_off_rounded,
+                    title: 'Work Sessions',
+                    route: 'WorkSessions',
+                    onTap: () => _navigateTo('WorkSessions', WorkSessionReportScreen(
+                      authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
+                    )),
+                  ),
+
                   _buildNavItem(
                     icon: Icons.people_alt_rounded,
                     title: 'Users',
@@ -199,7 +211,6 @@ class _AppDrawerState extends State<AppDrawer> {
                       authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
                     )),
                   ),
-                  // Supporter agora também gere Tags
                   _buildNavItem(
                     icon: Icons.label_rounded,
                     title: 'Tag Management',
