@@ -19,30 +19,30 @@ void main() {
   group('UserRepository - Discovery Endpoints', () {
     final mockResponse = {
       'data': [
-        {'id': 1, 'name': 'John Customer', 'email': 'john@test.com'},
-        {'id': 2, 'name': 'Mary Customer', 'email': 'mary@test.com'},
+        {'id': 1, 'name': 'John Customer', 'email': 'john@test.com', 'role': 'customer'},
+        {'id': 2, 'name': 'Mary Customer', 'email': 'mary@test.com', 'role': 'customer'},
       ]
     };
 
-    test('getCustomers requests the correct endpoint and returns simplified user list', () async {
+    test('getCustomers requests the correct endpoint and returns typed user list', () async {
       when(mockApiClient.get('/customers', queryParameters: anyNamed('queryParameters')))
           .thenAnswer((_) async => mockResponse);
 
       final result = await repository.getCustomers();
 
       expect(result.length, equals(2));
-      expect(result.first['name'], equals('John Customer'));
+      expect(result.first.name, equals('John Customer'));
       verify(mockApiClient.get('/customers')).called(1);
     });
 
-    test('getSupporters requests the correct endpoint and returns simplified user list', () async {
+    test('getSupporters requests the correct endpoint and returns typed user list', () async {
       when(mockApiClient.get('/supporters', queryParameters: anyNamed('queryParameters')))
           .thenAnswer((_) async => mockResponse);
 
       final result = await repository.getSupporters();
 
       expect(result.length, equals(2));
-      expect(result.first['email'], equals('john@test.com'));
+      expect(result.first.email, equals('john@test.com'));
       verify(mockApiClient.get('/supporters')).called(1);
     });
 

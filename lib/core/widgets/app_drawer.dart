@@ -5,11 +5,13 @@ import '../../features/tickets/repositories/ticket_repository.dart';
 import '../../features/notifications/repositories/notification_repository.dart';
 import '../../features/tags/repositories/tag_repository.dart';
 import '../../features/activity_logs/repositories/activity_log_repository.dart';
+import '../../features/users/repositories/user_repository.dart';
 
 import '../../features/auth/ui/login_screen.dart';
 import '../../features/tickets/ui/ticket_list_screen.dart';
 import '../../features/dashboard/ui/dashboard_screen.dart';
 import '../../features/users/ui/user_management_screen.dart';
+import '../../features/users/viewmodels/user_management_viewmodel.dart';
 import '../../features/profile/ui/profile_screen.dart';
 import '../../features/notifications/ui/notifications_screen.dart';
 import '../../features/tags/ui/tag_management_screen.dart';
@@ -185,7 +187,6 @@ class _AppDrawerState extends State<AppDrawer> {
                   )),
                 ),
                 
-                // RBAC: Admins e Supporters
                 if (_userRole == 'admin' || _userRole == 'supporter') ...[
                   const Divider(),
                   Padding(
@@ -193,7 +194,6 @@ class _AppDrawerState extends State<AppDrawer> {
                     child: Text('Management', style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold)),
                   ),
                   
-                  // NEW: Work Sessions Reports
                   _buildNavItem(
                     icon: Icons.history_toggle_off_rounded,
                     title: 'Work Sessions',
@@ -208,7 +208,9 @@ class _AppDrawerState extends State<AppDrawer> {
                     title: 'Users',
                     route: 'Users',
                     onTap: () => _navigateTo('Users', UserManagementScreen(
-                      authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
+                      viewModel: UserManagementViewModel(
+                        userRepository: UserRepository(apiClient: widget.authRepository.apiClient),
+                      ),
                     )),
                   ),
                   _buildNavItem(
@@ -223,7 +225,6 @@ class _AppDrawerState extends State<AppDrawer> {
                     )),
                   ),
                   
-                  // Apenas o Admin pode gerir Logs
                   if (_userRole == 'admin') ...[
                     _buildNavItem(
                       icon: Icons.history_rounded,

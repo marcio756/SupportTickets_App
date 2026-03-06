@@ -1,60 +1,76 @@
 import '../../../core/network/api_client.dart';
+import '../models/user_model.dart';
 
-/// Repository responsible for user management operations (CRUD and selections).
+/// Centralized repository for all User CRUD operations against the API.
+/// Isolates data-fetching logic from the UI and ViewModels.
 class UserRepository {
-  /// The API client used to perform HTTP requests.
   final ApiClient apiClient;
 
-  /// Initializes the UserRepository.
   UserRepository({required this.apiClient});
 
-  /// Retrieves a paginated and optionally filtered list of users.
-  /// 
-  /// [query] A search string to filter users by name or email.
-  /// [role] The specific role to filter users. Use 'all' to bypass role filtering.
-  /// [page] The pagination page to retrieve.
-  Future<Map<String, dynamic>> getUsers({String query = '', String role = 'all', int page = 1}) async {
-    final Map<String, dynamic> queryParams = {'page': page.toString()};
-    if (query.isNotEmpty) queryParams['query'] = query;
-    if (role != 'all') queryParams['role'] = role;
-
-    return await apiClient.get('/users', queryParameters: queryParams);
+  /// Helper to extract list data regardless of Laravel's pagination wrapping.
+  List<dynamic> _extractDataList(Map<String, dynamic> response) {
+    dynamic data = response.containsKey('data') ? response['data'] : response;
+    if (data is Map && data.containsKey('data') && data['data'] is List) {
+      return data['data'] as List<dynamic>;
+    }
+    return data is List ? data : (data is Map ? data.values.toList() : []);
   }
 
-  /// Creates a new user in the system.
-  Future<void> createUser(Map<String, dynamic> userData) async {
-    await apiClient.post('/users', data: userData);
+  /// Fetches all users from the system.
+  Future<List<UserModel>> getUsers() async {
+    final Map<String, dynamic> response = await apiClient.get('/users');
+    final List<dynamic> dataList = _extractDataList(response);
+        
+    return dataList
+        .map((json) => UserModel.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 
-  /// Updates an existing user's data.
-  Future<void> updateUser(String userId, Map<String, dynamic> userData) async {
-    await apiClient.put('/users/$userId', data: userData);
+  /// Fetches a lightweight list of customers for discovery/dropdowns.
+  Future<List<UserModel>> getCustomers() async {
+    final Map<String, dynamic> response = await apiClient.get('/customers');
+    final List<dynamic> dataList = _extractDataList(response);
+        
+    return dataList
+        .map((json) => UserModel.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 
-  /// Permanently deletes a user from the system.
-  Future<void> deleteUser(String userId) async {
+  /// Fetches a lightweight list of supporters for discovery/dropdowns.
+  Future<List<UserModel>> getSupporters() async {
+    final Map<String, dynamic> response = await apiClient.get('/supporters');
+    final List<dynamic> dataList = _extractDataList(response);
+        
+    return dataList
+        .map((json) => UserModel.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Sends a payload to create a newly registered user in the system.
+  Future<UserModel> createUser(Map<String, dynamic> userData) async {
+    final Map<String, dynamic> response = await apiClient.post(
+      '/users',
+      data: userData,
+    );
+    
+    final data = response.containsKey('data') ? response['data'] : response;
+    return UserModel.fromJson(data as Map<String, dynamic>);
+  }
+
+  /// Updates an existing user's information.
+  Future<UserModel> updateUser(int userId, Map<String, dynamic> userData) async {
+    final Map<String, dynamic> response = await apiClient.put(
+      '/users/$userId',
+      data: userData,
+    );
+    
+    final data = response.containsKey('data') ? response['data'] : response;
+    return UserModel.fromJson(data as Map<String, dynamic>);
+  }
+
+  /// Soft deletes or permanently deletes a user based on backend logic.
+  Future<void> deleteUser(int userId) async {
     await apiClient.delete('/users/$userId');
-  }
-
-  /// Fetches a lightweight list of users with the 'customer' role.
-  /// 
-  /// Primarily used for populating dropdowns during ticket creation.
-  Future<List<Map<String, dynamic>>> getCustomers() async {
-    final response = await apiClient.get('/customers');
-    if (response['data'] == null) {
-      return [];
-    }
-    return List<Map<String, dynamic>>.from(response['data']);
-  }
-
-  /// Fetches a lightweight list of users with the 'supporter' role.
-  /// 
-  /// Primarily used for populating dropdowns when manually assigning a ticket.
-  Future<List<Map<String, dynamic>>> getSupporters() async {
-    final response = await apiClient.get('/supporters');
-    if (response['data'] == null) {
-      return [];
-    }
-    return List<Map<String, dynamic>>.from(response['data']);
   }
 }
