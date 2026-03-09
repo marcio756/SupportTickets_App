@@ -24,10 +24,31 @@ class ActivityLogViewModel extends ChangeNotifier {
     try {
       final response = await repository.getActivityLogs();
       
-      // Handle potential pagination structures from Laravel ApiResponser
-      final data = response.containsKey('data') ? response['data'] : response;
-      final List<dynamic> rawList = data is Map && data.containsKey('data') ? data['data'] : data;
-      
+      List<dynamic> rawList = [];
+
+      // O ApiResponser do Laravel embrulha o payload dentro de 'data'
+      final responseData = response['data'] ?? response;
+
+      // O nosso controller devolve { 'logs': {...paginator...}, 'options': {...} }
+      if (responseData is Map && responseData.containsKey('logs')) {
+        final logsData = responseData['logs'];
+        
+        // O Paginator do Laravel tem a lista real dentro da chave 'data'
+        if (logsData is Map && logsData.containsKey('data')) {
+          rawList = logsData['data'] as List<dynamic>;
+        } else if (logsData is List) {
+          rawList = logsData;
+        }
+      } 
+      // Fallback padrão se no futuro o endpoint devolver apenas a paginação direta
+      else if (responseData is Map && responseData.containsKey('data')) {
+        rawList = responseData['data'] as List<dynamic>;
+      } 
+      // Fallback se a API devolver uma lista plana diretamente
+      else if (responseData is List) {
+        rawList = responseData;
+      }
+
       _logs = rawList.map((json) => ActivityLog.fromJson(json as Map<String, dynamic>)).toList();
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');

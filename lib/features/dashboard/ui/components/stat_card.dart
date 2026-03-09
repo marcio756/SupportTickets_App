@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// A reusable card component to display statistical data on the dashboard.
-/// Refactored to be completely overflow-proof using FittedBox and Expanded.
+/// Safely built to prevent flex constraint issues inside scrollable views.
 class StatCard extends StatelessWidget {
   /// The title of the statistic.
   final String title;
@@ -35,7 +35,9 @@ class StatCard extends StatelessWidget {
         padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Shrink-wrap the column vertically to prevent unbounded height errors
+          // when placed inside SingleChildScrollView.
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               padding: const EdgeInsets.all(8),
@@ -46,11 +48,11 @@ class StatCard extends StatelessWidget {
               child: Icon(
                 icon,
                 color: colorScheme.onPrimaryContainer,
-                size: 20, // Slightly reduced to prevent overflow on very small devices
+                size: 20, 
               ),
             ),
             const SizedBox(height: 8),
-            // FittedBox guarantees the text shrinks instead of overflowing
+            // FittedBox guarantees the text shrinks instead of overflowing horizontally
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
@@ -63,16 +65,15 @@ class StatCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            // Expanded forces the text to stay inside the card's constraints
-            Expanded(
-              child: Text(
-                title,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+            // Text widget naturally wraps horizontally. 
+            // Removed 'Expanded' to prevent vertical unbounded constraint crashes.
+            Text(
+              title,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

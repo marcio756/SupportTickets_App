@@ -1,41 +1,50 @@
 import 'package:flutter/foundation.dart';
 import '../repositories/dashboard_repository.dart';
 
-/// ViewModel responsible for managing the state and business logic of the dashboard.
+/// Centralizes and manages state for the Dashboard UI
 class DashboardViewModel extends ChangeNotifier {
-  final DashboardRepository dashboardRepository;
+  final DashboardRepository repository;
 
-  bool _isLoading = true;
-  bool _isSupportRole = false;
-  Map<String, dynamic> _metrics = {};
-  List<Map<String, dynamic>> _topClients = [];
+  Map<String, dynamic> _stats = {};
+  List<dynamic> _topCustomers = [];
+  List<dynamic> _topSupporters = [];
+  String _role = '';
+  
+  bool _isLoading = false;
   String? _errorMessage;
 
-  DashboardViewModel({required this.dashboardRepository});
+  DashboardViewModel({required this.repository});
 
+  Map<String, dynamic> get stats => _stats;
+  List<dynamic> get topCustomers => _topCustomers;
+  List<dynamic> get topSupporters => _topSupporters;
+  String get role => _role;
+  
   bool get isLoading => _isLoading;
-  bool get isSupportRole => _isSupportRole;
-  Map<String, dynamic> get metrics => _metrics;
-  List<Map<String, dynamic>> get topClients => _topClients;
   String? get errorMessage => _errorMessage;
 
-  /// Fetches the dashboard data from the API and infers the user role.
+  /// Fetches the dynamic dashboard data based on user role from API
   Future<void> loadDashboardData() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final data = await dashboardRepository.getDashboardStats();
+      final response = await repository.getDashboardStats(); 
+      final data = response.containsKey('data') ? response['data'] : response;
       
-      _metrics = data;
-      _isSupportRole = data.containsKey('active_tickets');
-
-      if (_isSupportRole && data.containsKey('top_clients')) {
-        final List<dynamic> rawClients = data['top_clients'];
-        _topClients = rawClients.map((client) => client as Map<String, dynamic>).toList();
+      _role = data['role'] ?? 'customer';
+      _stats = data['stats'] ?? {};
+      
+      // Admins and Supporters both have access to Top Customers
+      if (_role == 'admin' || _role == 'supporter') {
+        _topCustomers = data['top_customers'] ?? [];
       }
-      
+
+      // Only Admins have access to Top Supporters
+      if (_role == 'admin') {
+        _topSupporters = data['top_supporters'] ?? [];
+      }
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
     } finally {

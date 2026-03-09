@@ -141,7 +141,11 @@ class _AppDrawerState extends State<AppDrawer> {
             ),
           ),
           
-          if (_userRole != 'customer' && _userRole.isNotEmpty)
+          /**
+           * Ensure the work session timer only appears for supporters, 
+           * hiding it for the admin role as requested.
+           */
+          if (_userRole == 'supporter')
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
               child: WorkSessionTimerWidget(),
@@ -159,14 +163,20 @@ class _AppDrawerState extends State<AppDrawer> {
                     authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
                   )),
                 ),
-                _buildNavItem(
-                  icon: Icons.confirmation_number_rounded,
-                  title: 'Tickets',
-                  route: 'Tickets',
-                  onTap: () => _navigateTo('Tickets', TicketListScreen(
-                    authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
-                  )),
-                ),
+                
+                /**
+                 * Hide Tickets menu for admin
+                 */
+                if (_userRole != 'admin')
+                  _buildNavItem(
+                    icon: Icons.confirmation_number_rounded,
+                    title: 'Tickets',
+                    route: 'Tickets',
+                    onTap: () => _navigateTo('Tickets', TicketListScreen(
+                      authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
+                    )),
+                  ),
+                  
                 _buildNavItem(
                   icon: Icons.notifications_none_rounded,
                   title: 'Notifications',
@@ -211,6 +221,9 @@ class _AppDrawerState extends State<AppDrawer> {
                       viewModel: UserManagementViewModel(
                         userRepository: UserRepository(apiClient: widget.authRepository.apiClient),
                       ),
+                      authRepository: widget.authRepository,
+                      ticketRepository: widget.ticketRepository,
+                      profileRepository: widget.profileRepository,
                     )),
                   ),
                   _buildNavItem(

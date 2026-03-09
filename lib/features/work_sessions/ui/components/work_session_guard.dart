@@ -6,9 +6,9 @@ import 'package:supporttickets_app/features/work_sessions/ui/components/work_ses
 
 /// A Higher-Order Component (HOC) that guards routes and screens.
 /// 
-/// If the user is a 'supporter' or 'admin', it verifies if their work session is active.
+/// If the user is a 'supporter', it verifies if their work session is active.
 /// If not, it blocks the child component and displays the WorkSessionTimerWidget.
-/// Customers bypass this guard entirely.
+/// Customers and Admins bypass this guard entirely.
 class WorkSessionGuard extends StatefulWidget {
   final ProfileRepository profileRepository;
   final Widget child;
@@ -59,12 +59,14 @@ class _WorkSessionGuardState extends State<WorkSessionGuard> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // Customers don't have work sessions, let them pass
-    if (_role == 'customer') {
+    /**
+     * Customers and Admins don't have work sessions, let them pass
+     */
+    if (_role == 'customer' || _role == 'admin') {
       return widget.child;
     }
 
-    // Supporters and Admins must be checked
+    // Supporters must be checked
     return Consumer<WorkSessionViewModel>(
       builder: (context, viewModel, _) {
         if (viewModel.isActive) {

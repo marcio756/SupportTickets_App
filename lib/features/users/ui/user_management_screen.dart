@@ -2,13 +2,26 @@ import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../viewmodels/user_management_viewmodel.dart';
 import '../../../core/widgets/custom_text_field.dart';
+import '../../../core/widgets/app_drawer.dart';
+import '../../auth/repositories/auth_repository.dart';
+import '../../tickets/repositories/ticket_repository.dart';
+import '../../profile/repositories/profile_repository.dart';
 
 /// Screen responsible for managing system users.
 /// Displays a list, filters, and handles create/edit/delete intents.
 class UserManagementScreen extends StatefulWidget {
   final UserManagementViewModel viewModel;
+  final AuthRepository authRepository;
+  final TicketRepository ticketRepository;
+  final ProfileRepository profileRepository;
 
-  const UserManagementScreen({super.key, required this.viewModel});
+  const UserManagementScreen({
+    super.key, 
+    required this.viewModel,
+    required this.authRepository,
+    required this.ticketRepository,
+    required this.profileRepository,
+  });
 
   @override
   State<UserManagementScreen> createState() => _UserManagementScreenState();
@@ -79,6 +92,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             onPressed: widget.viewModel.fetchUsers,
           ),
         ],
+      ),
+      drawer: AppDrawer(
+        authRepository: widget.authRepository,
+        ticketRepository: widget.ticketRepository,
+        profileRepository: widget.profileRepository,
+        currentRoute: 'Users',
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showUserForm(),
