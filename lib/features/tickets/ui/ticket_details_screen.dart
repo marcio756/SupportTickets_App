@@ -4,11 +4,13 @@ import '../repositories/ticket_repository.dart';
 import '../../profile/repositories/profile_repository.dart';
 import '../viewmodels/ticket_details_viewmodel.dart';
 import 'components/message_bubble.dart';
+import 'components/message_bubble_skeleton.dart';
 import 'components/ticket_chat_input.dart';
 import 'components/ticket_status_badge.dart';
 import 'components/ticket_status_dropdown.dart';
 import 'components/support_time_display.dart';
 import 'components/ticket_tags_dialog.dart';
+import '../../../core/widgets/progress_illusion_bar.dart';
 
 class TicketDetailsScreen extends StatefulWidget {
   final Ticket ticket;
@@ -153,14 +155,23 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
             }
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(4.0),
+          child: ListenableBuilder(
+            listenable: _viewModel,
+            builder: (context, _) {
+              // Renders a fast illusion bar while background operations are resolving optimistically
+              if (_viewModel.isUpdatingStatus || _viewModel.isClaiming) {
+                return const ProgressIllusionBar(isComplete: false);
+              }
+              return const SizedBox(height: 4.0);
+            },
+          ),
+        ),
       ),
       body: ListenableBuilder(
         listenable: _viewModel,
         builder: (context, _) {
-          if (_viewModel.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
           if (_viewModel.errorMessage != null && _viewModel.messages.isEmpty) {
             return Center(
               child: Padding(
@@ -308,7 +319,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                         const SizedBox(height: 8),
                         TicketStatusDropdown(
                           currentStatus: _viewModel.ticket.status,
-                          isLoading: _viewModel.isUpdatingStatus,
+                          isLoading: false, // UI Optimista: a dropdown não precisa bloquear
                           onStatusChanged: (newStatus) {
                             _viewModel.updateStatus(newStatus);
                           },
@@ -321,21 +332,30 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
               ),
               
               Expanded(
-                child: _viewModel.messages.isEmpty
-                    ? Center(child: Text('Ainda não há mensagens. Comece a conversa!', style: TextStyle(color: colorScheme.onSurfaceVariant)))
-                    : ListView.builder(
-                        controller: _scrollController,
+                child: _viewModel.isLoading 
+                    ? ListView.builder(
                         padding: const EdgeInsets.all(16),
-                        itemCount: _viewModel.messages.length,
-                        itemBuilder: (context, index) {
-                          final message = _viewModel.messages[index];
-                          return MessageBubble(message: message);
-                        },
-                      ),
+                        itemCount: 4,
+                        itemBuilder: (context, index) => MessageBubbleSkeleton(isSender: index % 2 == 0),
+                      )
+                    : _viewModel.messages.isEmpty
+                        ? Center(child: Text('Ainda não há mensagens. Comece a conversa!', style: TextStyle(color: colorScheme.onSurfaceVariant)))
+                        : ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _viewModel.messages.length,
+                            itemBuilder: (context, index) {
+                              final message = _viewModel.messages[index];
+                              return Opacity(
+                                opacity: message.id < 0 ? 0.6 : 1.0, // Temporary optimistic state
+                                child: MessageBubble(message: message),
+                              );
+                            },
+                          ),
               ),
 
               TicketChatInput(
-                isSending: _viewModel.isSending,
+                isSending: false, // Optimistic UI: input always unlocked
                 isEnabled: isTicketInProgress,
                 onSendMessage: (text, attachment) async {
                   final success = await _viewModel.sendMessage(text, attachment: attachment);

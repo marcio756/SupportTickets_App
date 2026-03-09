@@ -91,34 +91,57 @@ class TicketDetailsViewModel extends ChangeNotifier {
     }
   }
 
+  /// Sends a message using Optimistic UI principles.
+  /// Renders a temporary message bubble immediately, and rolls back if the API call fails.
   Future<bool> sendMessage(String? messageText, {PlatformFile? attachment}) async {
     if ((messageText == null || messageText.trim().isEmpty) && attachment == null) return false;
 
+    // Build optimistic temporary message mapping
+    final tempJson = {
+      'id': -(DateTime.now().millisecondsSinceEpoch), // Negative ID to mark as temp
+      'ticket_id': ticket.id,
+      'user_id': _currentUserId,
+      'message': messageText ?? '',
+      'created_at': DateTime.now().toIso8601String(),
+    };
+    
+    final tempMessage = TicketMessage.fromJson(tempJson, _currentUserId ?? 0);
+
     _isSending = true;
     _errorMessage = null;
+    _messages.add(tempMessage); // Optimistic addition
     notifyListeners();
 
     try {
-      final newMessage = await ticketRepository.sendMessage(
+      final realMessage = await ticketRepository.sendMessage(
         ticket.id, 
         messageText, 
         userId: _currentUserId,
         attachment: attachment,
       );
       
-      _messages.add(newMessage);
-      _isSending = false;
-      notifyListeners();
+      // Replace temporary message with the definitive server response
+      _messages.removeWhere((m) => m.id == tempMessage.id);
+      _messages.add(realMessage);
+      
       return true;
     } catch (e) {
+      // Rollback optimistic update
+      _messages.removeWhere((m) => m.id == tempMessage.id);
       _errorMessage = 'Failed to send message: ${e.toString().replaceAll('Exception: ', '')}';
+      return false;
+    } finally {
       _isSending = false;
       notifyListeners();
-      return false;
     }
   }
 
+  /// Updates the ticket status using Optimistic UI principles.
   Future<void> updateStatus(String newStatus) async {
+    final String oldStatus = ticket.status;
+    
+    // Optimistic status update
+    ticket = ticket.copyWith(status: newStatus);
     _isUpdatingStatus = true;
     _errorMessage = null;
     notifyListeners();
@@ -127,6 +150,8 @@ class TicketDetailsViewModel extends ChangeNotifier {
       final updatedTicket = await ticketRepository.updateTicketStatus(ticket.id, newStatus);
       ticket = updatedTicket;
     } catch (e) {
+      // Rollback to previous status if the network request fails
+      ticket = ticket.copyWith(status: oldStatus);
       _errorMessage = 'Failed to update status: ${e.toString().replaceAll('Exception: ', '')}';
     } finally {
       _isUpdatingStatus = false;

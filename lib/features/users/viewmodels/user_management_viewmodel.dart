@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../repositories/user_repository.dart';
+import '../../profile/repositories/profile_repository.dart';
 
 /// Orchestrates the state for the User Management feature.
 /// Ensures the UI is completely decoupled from API calls and error handling logic.
 class UserManagementViewModel extends ChangeNotifier {
   final UserRepository _userRepository;
+  final ProfileRepository _profileRepository;
 
   List<UserModel> _users = [];
   bool _isLoading = false;
@@ -13,18 +15,27 @@ class UserManagementViewModel extends ChangeNotifier {
   
   String _searchQuery = '';
   String? _selectedRoleFilter;
+  String? _currentUserRole;
 
   List<UserModel> get users => _users;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String? get selectedRoleFilter => _selectedRoleFilter;
+  
+  /// Boolean helper to check if the active user is a supporter
+  bool get isSupporter => _currentUserRole?.toLowerCase() == 'supporter';
 
-  /// Returns a locally filtered list of users based on search query and role filter.
+  /// Returns a locally filtered list of users based on search query, role filter, and permission scope.
   List<UserModel> get filteredUsers {
     return _users.where((user) {
+      // Extra Security Filter: Supporters can only ever see customers
+      if (isSupporter && user.role.toLowerCase() != 'customer') {
+        return false;
+      }
+
       final matchesRole = _selectedRoleFilter == null || 
                           _selectedRoleFilter == 'All' || 
-                          user.role == _selectedRoleFilter;
+                          user.role.toLowerCase() == _selectedRoleFilter?.toLowerCase();
       
       final matchesSearch = _searchQuery.isEmpty ||
           user.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -34,22 +45,35 @@ class UserManagementViewModel extends ChangeNotifier {
     }).toList();
   }
 
-  UserManagementViewModel({required UserRepository userRepository})
-      : _userRepository = userRepository;
+  UserManagementViewModel({
+    required UserRepository userRepository,
+    required ProfileRepository profileRepository,
+  }) : _userRepository = userRepository,
+       _profileRepository = profileRepository;
 
   /// Alias to loadUsers to maintain compatibility with existing UI calls.
   Future<void> fetchUsers() async {
     await loadUsers();
   }
 
-  /// Fetches the initial list of users and notifies listeners to render.
+  /// Fetches the initial list of users, enforcing scope logic directly at the API level.
   Future<void> loadUsers() async {
     _setLoading(true);
     try {
-      _users = await _userRepository.getUsers();
+      final profile = await _profileRepository.getProfile();
+      final data = profile.containsKey('data') ? profile['data'] : profile;
+      _currentUserRole = data?['role']?.toString();
+
+      // Architectural Best Practice: Fetch ONLY what the user is allowed to see.
+      if (isSupporter) {
+        _users = await _userRepository.getCustomers();
+      } else {
+        _users = await _userRepository.getUsers();
+      }
+      
       _errorMessage = null;
     } catch (e) {
-      _errorMessage = 'Failed to load users: ${e.toString()}';
+      _errorMessage = 'Failed to load users: ${e.toString().replaceAll('Exception: ', '')}';
     } finally {
       _setLoading(false);
     }
@@ -57,6 +81,11 @@ class UserManagementViewModel extends ChangeNotifier {
 
   /// Unified method to handle both creation and updates from the UI.
   Future<bool> saveUser(Map<String, dynamic> userData, {int? id}) async {
+    // Enforce role security at the ViewModel level before hitting the repository
+    if (isSupporter) {
+      userData['role'] = 'customer';
+    }
+
     if (id != null) {
       return await updateUser(id, userData);
     } else {
@@ -73,7 +102,7 @@ class UserManagementViewModel extends ChangeNotifier {
       _errorMessage = null;
       return true;
     } catch (e) {
-      _errorMessage = 'Error creating user: ${e.toString()}';
+      _errorMessage = 'Error creating user: ${e.toString().replaceAll('Exception: ', '')}';
       return false;
     } finally {
       _setLoading(false);
@@ -92,7 +121,7 @@ class UserManagementViewModel extends ChangeNotifier {
       _errorMessage = null;
       return true;
     } catch (e) {
-      _errorMessage = 'Error updating user: ${e.toString()}';
+      _errorMessage = 'Error updating user: ${e.toString().replaceAll('Exception: ', '')}';
       return false;
     } finally {
       _setLoading(false);
@@ -108,7 +137,7 @@ class UserManagementViewModel extends ChangeNotifier {
       _errorMessage = null;
       return true;
     } catch (e) {
-      _errorMessage = 'Error deleting user: ${e.toString()}';
+      _errorMessage = 'Error deleting user: ${e.toString().replaceAll('Exception: ', '')}';
       return false;
     } finally {
       _setLoading(false);

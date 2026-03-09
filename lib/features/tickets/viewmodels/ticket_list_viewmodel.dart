@@ -10,6 +10,7 @@ class TicketListViewModel extends ChangeNotifier {
 
   List<Ticket> _tickets = [];
   bool _isLoading = false;
+  bool _isSyncing = false;
   String? _errorMessage;
 
   // Filter States
@@ -32,8 +33,11 @@ class TicketListViewModel extends ChangeNotifier {
   /// The current list of loaded tickets.
   List<Ticket> get tickets => _tickets;
 
-  /// Indicates whether a network request is currently in progress.
+  /// Indicates whether a network request is currently in progress for the main list.
   bool get isLoading => _isLoading;
+
+  /// Indicates whether a background synchronization is in progress.
+  bool get isSyncing => _isSyncing;
 
   /// Holds the error message if the last operation failed. Null if successful.
   String? get errorMessage => _errorMessage;
@@ -146,9 +150,9 @@ class TicketListViewModel extends ChangeNotifier {
     }
   }
   
-  /// Syncs emails via IMAP, swallowing authorization errors (for customers), and then loads tickets.
+  /// Syncs emails via IMAP using an illusion progress, and then loads tickets.
   Future<void> syncEmailsAndLoad() async {
-    _isLoading = true;
+    _isSyncing = true;
     notifyListeners();
 
     try {
@@ -158,24 +162,34 @@ class TicketListViewModel extends ChangeNotifier {
     }
 
     await loadTickets();
+    
+    _isSyncing = false;
+    notifyListeners();
   }
 
-  /// Deletes a specific ticket and removes it from the local state.
+  /// Deletes a specific ticket using an Optimistic UI approach.
+  /// Removes the ticket instantly from state and rolls back if the API request fails.
   Future<bool> deleteTicket(int ticketId) async {
-    _isLoading = true;
+    final int index = _tickets.indexWhere((ticket) => ticket.id == ticketId);
+    if (index == -1) return false;
+
+    // Store backup for potential rollback
+    final Ticket backupTicket = _tickets[index];
+
+    // Optimistically update UI
+    _tickets.removeAt(index);
     _errorMessage = null;
     notifyListeners();
 
     try {
       await ticketRepository.deleteTicket(ticketId);
-      _tickets.removeWhere((ticket) => ticket.id == ticketId);
       return true;
     } catch (e) {
+      // Rollback state if the network request fails
+      _tickets.insert(index, backupTicket);
       _errorMessage = e.toString().replaceAll('Exception: ', '');
-      return false;
-    } finally {
-      _isLoading = false;
       notifyListeners();
+      return false;
     }
   }
 }

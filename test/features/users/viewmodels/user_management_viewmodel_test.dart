@@ -3,20 +3,34 @@ import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'package:supporttickets_app/features/users/models/user_model.dart';
 import 'package:supporttickets_app/features/users/repositories/user_repository.dart';
+import 'package:supporttickets_app/features/profile/repositories/profile_repository.dart';
 import 'package:supporttickets_app/features/users/viewmodels/user_management_viewmodel.dart';
 
-@GenerateMocks([UserRepository])
+// Geramos Mocks para ambos os repositórios
+@GenerateMocks([UserRepository, ProfileRepository])
 import 'user_management_viewmodel_test.mocks.dart';
 
 void main() {
   late UserManagementViewModel viewModel;
   late MockUserRepository mockUserRepository;
+  late MockProfileRepository mockProfileRepository;
 
   final dummyUser = UserModel(id: 1, name: 'John Doe', email: 'john@example.com', role: 'customer');
 
   setUp(() {
     mockUserRepository = MockUserRepository();
-    viewModel = UserManagementViewModel(userRepository: mockUserRepository);
+    mockProfileRepository = MockProfileRepository();
+
+    // Comportamento padrão: Assumimos que o utilizador a correr o teste é Admin
+    // para não acionar as restrições do Supporter e quebrar os testes existentes.
+    when(mockProfileRepository.getProfile()).thenAnswer((_) async => {
+      'data': {'id': 1, 'role': 'admin'}
+    });
+
+    viewModel = UserManagementViewModel(
+      userRepository: mockUserRepository,
+      profileRepository: mockProfileRepository, // Dependência injetada aqui
+    );
   });
 
   group('UserManagementViewModel Logic Formulation', () {

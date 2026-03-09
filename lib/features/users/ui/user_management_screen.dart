@@ -126,28 +126,31 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         onChanged: widget.viewModel.setSearchQuery,
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      flex: 1,
-                      child: DropdownButtonFormField<String>(
-                        key: ValueKey(widget.viewModel.selectedRoleFilter),
-                        initialValue: widget.viewModel.selectedRoleFilter,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                    
+                    if (!widget.viewModel.isSupporter) ...[
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 1,
+                        child: DropdownButtonFormField<String>(
+                          key: ValueKey(widget.viewModel.selectedRoleFilter),
+                          initialValue: widget.viewModel.selectedRoleFilter,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                          hint: const Text('Role'),
+                          items: const [
+                            DropdownMenuItem(value: null, child: Text('All')),
+                            DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                            DropdownMenuItem(value: 'supporter', child: Text('Supporter')),
+                            DropdownMenuItem(value: 'customer', child: Text('Customer')),
+                          ],
+                          onChanged: widget.viewModel.setRoleFilter,
                         ),
-                        hint: const Text('Role'),
-                        items: const [
-                          DropdownMenuItem(value: null, child: Text('All')),
-                          DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                          DropdownMenuItem(value: 'supporter', child: Text('Supporter')),
-                          DropdownMenuItem(value: 'customer', child: Text('Customer')),
-                        ],
-                        onChanged: widget.viewModel.setRoleFilter,
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -225,8 +228,12 @@ class _UserFormSheetState extends State<_UserFormSheet> {
     _nameCtrl = TextEditingController(text: widget.user?.name ?? '');
     _emailCtrl = TextEditingController(text: widget.user?.email ?? '');
     _passwordCtrl = TextEditingController();
+    
+    // Fallbacks to ensure safe initialization depending on constraints
     if (widget.user != null) {
       _role = widget.user!.role;
+    } else if (widget.viewModel.isSupporter) {
+      _role = 'customer';
     }
   }
 
@@ -243,7 +250,8 @@ class _UserFormSheetState extends State<_UserFormSheet> {
       final payload = {
         'name': _nameCtrl.text.trim(),
         'email': _emailCtrl.text.trim(),
-        'role': _role,
+        // Final frontend check: Override role entirely if the user is a supporter
+        'role': widget.viewModel.isSupporter ? 'customer' : _role,
       };
 
       if (_passwordCtrl.text.isNotEmpty) {
@@ -286,16 +294,25 @@ class _UserFormSheetState extends State<_UserFormSheet> {
               validator: (v) => v!.contains('@') ? null : 'Invalid email',
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              initialValue: _role,
-              decoration: const InputDecoration(hintText: 'Role', border: OutlineInputBorder()),
-              items: const [
-                DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                DropdownMenuItem(value: 'supporter', child: Text('Supporter')),
-                DropdownMenuItem(value: 'customer', child: Text('Customer')),
-              ],
-              onChanged: (v) => setState(() => _role = v!),
-            ),
+            
+            if (widget.viewModel.isSupporter)
+              TextFormField(
+                initialValue: 'Customer',
+                decoration: const InputDecoration(labelText: 'Role', border: OutlineInputBorder()),
+                enabled: false,
+              )
+            else
+              DropdownButtonFormField<String>(
+                initialValue: _role,
+                decoration: const InputDecoration(hintText: 'Role', border: OutlineInputBorder()),
+                items: const [
+                  DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                  DropdownMenuItem(value: 'supporter', child: Text('Supporter')),
+                  DropdownMenuItem(value: 'customer', child: Text('Customer')),
+                ],
+                onChanged: (v) => setState(() => _role = v!),
+              ),
+              
             const SizedBox(height: 16),
             CustomTextField(
               controller: _passwordCtrl,

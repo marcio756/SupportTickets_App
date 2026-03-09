@@ -7,6 +7,8 @@ import 'dart:async' as _i5;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:supporttickets_app/core/network/api_client.dart' as _i2;
+import 'package:supporttickets_app/features/profile/repositories/profile_repository.dart'
+    as _i6;
 import 'package:supporttickets_app/features/users/models/user_model.dart'
     as _i3;
 import 'package:supporttickets_app/features/users/repositories/user_repository.dart'
@@ -116,6 +118,61 @@ class MockUserRepository extends _i1.Mock implements _i4.UserRepository {
   _i5.Future<void> deleteUser(int? userId) =>
       (super.noSuchMethod(
             Invocation.method(#deleteUser, [userId]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+}
+
+/// A class which mocks [ProfileRepository].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockProfileRepository extends _i1.Mock implements _i6.ProfileRepository {
+  MockProfileRepository() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i2.ApiClient get apiClient =>
+      (super.noSuchMethod(
+            Invocation.getter(#apiClient),
+            returnValue: _FakeApiClient_0(this, Invocation.getter(#apiClient)),
+          )
+          as _i2.ApiClient);
+
+  @override
+  _i5.Future<Map<String, dynamic>> getProfile() =>
+      (super.noSuchMethod(
+            Invocation.method(#getProfile, []),
+            returnValue: _i5.Future<Map<String, dynamic>>.value(
+              <String, dynamic>{},
+            ),
+          )
+          as _i5.Future<Map<String, dynamic>>);
+
+  @override
+  _i5.Future<Map<String, dynamic>> updateProfile(Map<String, dynamic>? data) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateProfile, [data]),
+            returnValue: _i5.Future<Map<String, dynamic>>.value(
+              <String, dynamic>{},
+            ),
+          )
+          as _i5.Future<Map<String, dynamic>>);
+
+  @override
+  _i5.Future<void> updatePassword(Map<String, dynamic>? passwordData) =>
+      (super.noSuchMethod(
+            Invocation.method(#updatePassword, [passwordData]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> deleteAccount({Map<String, dynamic>? data}) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteAccount, [], {#data: data}),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )

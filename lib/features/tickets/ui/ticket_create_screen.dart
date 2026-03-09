@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../repositories/ticket_repository.dart';
 import '../viewmodels/ticket_create_viewmodel.dart';
+import '../../../core/widgets/form_field_skeleton.dart';
+import '../../../core/widgets/progress_illusion_bar.dart';
 
 /// Screen responsible for creating a new support ticket.
 class TicketCreateScreen extends StatefulWidget {
@@ -83,6 +85,18 @@ class _TicketCreateScreenState extends State<TicketCreateScreen> {
       appBar: AppBar(
         title: const Text('New Ticket', style: TextStyle(fontWeight: FontWeight.bold)),
         elevation: 1,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(4.0),
+          child: ListenableBuilder(
+            listenable: _viewModel,
+            builder: (context, _) {
+              if (_viewModel.isLoading) {
+                return const ProgressIllusionBar(isComplete: false);
+              }
+              return const SizedBox(height: 4.0);
+            },
+          ),
+        ),
       ),
       body: ListenableBuilder(
         listenable: _viewModel,
@@ -105,10 +119,11 @@ class _TicketCreateScreenState extends State<TicketCreateScreen> {
                     ),
                     const SizedBox(height: 16),
                     
+                    // Uses Skeleton Loader for graceful loading experience
                     if (_viewModel.isLoadingCustomers)
                       const Padding(
                         padding: EdgeInsets.only(bottom: 16.0),
-                        child: Center(child: CircularProgressIndicator()),
+                        child: FormFieldSkeleton(),
                       )
                     else if (_viewModel.customers.isNotEmpty)
                       Column(
@@ -206,19 +221,10 @@ class _TicketCreateScreenState extends State<TicketCreateScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: _viewModel.isLoading
-                            ? SizedBox(
-                                width: 24, 
-                                height: 24, 
-                                child: CircularProgressIndicator(
-                                  color: colorScheme.onPrimary, 
-                                  strokeWidth: 2
-                                )
-                              )
-                            : const Text(
-                                'Submit Ticket', 
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
-                              ),
+                        child: const Text(
+                          'Submit Ticket', 
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),

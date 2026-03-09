@@ -62,7 +62,8 @@ class _WorkSessionGuardState extends State<WorkSessionGuard> {
     /**
      * Customers and Admins don't have work sessions, let them pass
      */
-    if (_role == 'customer' || _role == 'admin') {
+    final currentRole = _role?.toLowerCase() ?? '';
+    if (currentRole == 'customer' || currentRole == 'admin') {
       return widget.child;
     }
 

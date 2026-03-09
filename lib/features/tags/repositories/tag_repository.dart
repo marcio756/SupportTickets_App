@@ -23,7 +23,9 @@ class TagRepository {
   /// Retrieves a list of all available tags.
   Future<List<Map<String, dynamic>>> getTags() async {
     final response = await apiClient.get('/tags');
-    return _extractDataList(response).cast<Map<String, dynamic>>();
+    final list = _extractDataList(response);
+    // Explicit extraction to avoid silent .cast<Map<String, dynamic>>() exceptions
+    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   /// Creates a new tag in the system.

@@ -220,6 +220,7 @@ class _AppDrawerState extends State<AppDrawer> {
                     onTap: () => _navigateTo('Users', UserManagementScreen(
                       viewModel: UserManagementViewModel(
                         userRepository: UserRepository(apiClient: widget.authRepository.apiClient),
+                        profileRepository: widget.profileRepository, // <- Passagem Injetada aqui
                       ),
                       authRepository: widget.authRepository,
                       ticketRepository: widget.ticketRepository,

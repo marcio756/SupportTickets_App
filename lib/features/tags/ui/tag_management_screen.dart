@@ -104,6 +104,28 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
           listenable: _viewModel,
           builder: (context, _) {
             if (_viewModel.isLoading) return const Center(child: CircularProgressIndicator());
+            
+            // Tratamento explícito de erros (substitui o silêncio que o admin sofria)
+            if (_viewModel.errorMessage != null && _viewModel.tags.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 60, color: Theme.of(context).colorScheme.error),
+                      const SizedBox(height: 16),
+                      const Text('Failed to load tags', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Text(_viewModel.errorMessage!, textAlign: TextAlign.center),
+                      const SizedBox(height: 24),
+                      ElevatedButton(onPressed: _viewModel.loadTags, child: const Text('Try Again')),
+                    ],
+                  ),
+                ),
+              );
+            }
+
             if (_viewModel.tags.isEmpty) return const Center(child: Text('No tags found.'));
 
             return ListView.builder(

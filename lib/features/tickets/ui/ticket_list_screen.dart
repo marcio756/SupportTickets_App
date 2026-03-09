@@ -4,11 +4,13 @@ import '../repositories/ticket_repository.dart';
 import '../../profile/repositories/profile_repository.dart';
 import '../../work_sessions/ui/components/work_session_guard.dart';
 import 'components/ticket_card.dart';
+import 'components/ticket_card_skeleton.dart';
 import '../components/ticket_filters_bottom_sheet.dart';
 import 'ticket_create_screen.dart';
 import 'ticket_details_screen.dart';
 import '../viewmodels/ticket_list_viewmodel.dart';
 import '../../../core/widgets/app_drawer.dart';
+import '../../../core/widgets/progress_illusion_bar.dart';
 
 class TicketListScreen extends StatefulWidget {
   final AuthRepository authRepository;
@@ -74,12 +76,36 @@ class _TicketListScreenState extends State<TicketListScreen> {
             onPressed: _openFilters,
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(4.0),
+          child: ListenableBuilder(
+            listenable: _viewModel,
+            builder: (context, _) {
+              // Displays the progress illusion during sync operations
+              if (_viewModel.isSyncing || (_viewModel.isLoading && _viewModel.tickets.isNotEmpty)) {
+                return ProgressIllusionBar(isComplete: !_viewModel.isSyncing && !_viewModel.isLoading);
+              }
+              return const SizedBox(height: 4.0);
+            },
+          ),
+        ),
       ),
       body: WorkSessionGuard(
         profileRepository: widget.profileRepository,
         child: ListenableBuilder(
           listenable: _viewModel,
           builder: (context, _) {
+            // Displays Snackbar dynamically for Optimistic UI rollbacks
+            if (_viewModel.errorMessage != null && _viewModel.tickets.isNotEmpty) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(_viewModel.errorMessage!)),
+                  );
+                }
+              });
+            }
+
             return Column(
               children: [
                 Container(
@@ -126,7 +152,15 @@ class _TicketListScreenState extends State<TicketListScreen> {
   }
 
   Widget _buildContent() {
-    if (_viewModel.isLoading && _viewModel.tickets.isEmpty) return const Center(child: CircularProgressIndicator());
+    // Shows Skeleton Screens for initial loading states instead of CircularProgressIndicator
+    if (_viewModel.isLoading && _viewModel.tickets.isEmpty) {
+      return ListView.builder(
+        padding: const EdgeInsets.all(16.0),
+        itemCount: 5,
+        itemBuilder: (context, index) => const TicketCardSkeleton(),
+      );
+    }
+
     if (_viewModel.errorMessage != null && _viewModel.tickets.isEmpty) {
       return Center(
         child: Padding(
@@ -146,8 +180,14 @@ class _TicketListScreenState extends State<TicketListScreen> {
         ),
       );
     }
+    
     if (_viewModel.tickets.isEmpty) {
-      return Center(child: Text('You have no tickets matching the criteria.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)));
+      return Center(
+        child: Text(
+          'You have no tickets matching the criteria.', 
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)
+        ),
+      );
     }
 
     return RefreshIndicator(
