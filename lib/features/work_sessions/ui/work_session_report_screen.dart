@@ -5,9 +5,10 @@ import '../../profile/repositories/profile_repository.dart';
 import '../../tickets/repositories/ticket_repository.dart';
 import '../repositories/work_session_repository.dart';
 import '../viewmodels/work_session_report_viewmodel.dart';
+import 'components/weekly_calendar_widget.dart';
 
 /// Screen responsible for displaying the work session history and reports.
-/// Accessible at any time regardless of the user's active work session state.
+/// Provides a toggleable view between a Weekly Calendar Grid and a chronological List.
 class WorkSessionReportScreen extends StatefulWidget {
   final AuthRepository authRepository;
   final TicketRepository ticketRepository;
@@ -28,6 +29,7 @@ class _WorkSessionReportScreenState extends State<WorkSessionReportScreen> {
   late final WorkSessionReportViewModel _viewModel;
   final ScrollController _scrollController = ScrollController();
   String _userRole = 'supporter';
+  bool _showCalendarView = true; // Emphasize the calendar by default as requested
 
   @override
   void initState() {
@@ -38,7 +40,7 @@ class _WorkSessionReportScreenState extends State<WorkSessionReportScreen> {
     _checkRoleAndLoad();
 
     _scrollController.addListener(() {
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_showCalendarView && _scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
         _viewModel.loadMore();
       }
     });
@@ -80,8 +82,13 @@ class _WorkSessionReportScreenState extends State<WorkSessionReportScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Work Sessions Report', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Work Sessions', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
+          IconButton(
+            icon: Icon(_showCalendarView ? Icons.view_list : Icons.calendar_view_week),
+            tooltip: 'Toggle View',
+            onPressed: () => setState(() => _showCalendarView = !_showCalendarView),
+          ),
           IconButton(
             icon: const Icon(Icons.filter_alt_off),
             tooltip: 'Clear Filters',
@@ -95,7 +102,6 @@ class _WorkSessionReportScreenState extends State<WorkSessionReportScreen> {
         profileRepository: widget.profileRepository,
         currentRoute: 'WorkSessions',
       ),
-      // The guard was removed here. The screen is now directly accessible.
       body: ListenableBuilder(
         listenable: _viewModel,
         builder: (context, _) {
@@ -107,58 +113,42 @@ class _WorkSessionReportScreenState extends State<WorkSessionReportScreen> {
             onRefresh: _viewModel.loadReports,
             child: Column(
               children: [
-                _buildSummaryCard(colorScheme),
+                _WorkSessionSummaryCard(
+                  totalHours: _viewModel.summary['total_hours'], 
+                  totalMinutes: _viewModel.summary['total_minutes']
+                ),
                 _buildFilters(colorScheme),
+                const SizedBox(height: 8),
                 Expanded(
                   child: _viewModel.sessions.isEmpty
                       ? const Center(child: Text('No sessions found for the given filters.'))
-                      : ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                          itemCount: _viewModel.sessions.length + (_viewModel.hasMore ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index == _viewModel.sessions.length) {
-                              return const Padding(
-                                padding: EdgeInsets.all(16.0),
-                                child: Center(child: CircularProgressIndicator()),
-                              );
-                            }
-                            return _buildSessionCard(_viewModel.sessions[index], colorScheme);
-                          },
-                        ),
+                      : _showCalendarView 
+                          ? WeeklyCalendarWidget(
+                              sessions: _viewModel.sessions,
+                              referenceDate: _viewModel.selectedDate ?? DateTime.now(),
+                            )
+                          : ListView.builder(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                              itemCount: _viewModel.sessions.length + (_viewModel.hasMore ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (index == _viewModel.sessions.length) {
+                                  return const Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: Center(child: CircularProgressIndicator()),
+                                  );
+                                }
+                                return _WorkSessionItemCard(
+                                  session: _viewModel.sessions[index], 
+                                  userRole: _userRole
+                                );
+                              },
+                            ),
                 ),
               ],
             ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard(ColorScheme colorScheme) {
-    return Container(
-      margin: const EdgeInsets.all(16.0),
-      padding: const EdgeInsets.all(20.0),
-      decoration: BoxDecoration(
-        color: colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Total Worked Time', style: TextStyle(color: colorScheme.onPrimaryContainer, fontSize: 14)),
-              const SizedBox(height: 4),
-              Text(
-                '${_viewModel.summary['total_hours']}h ${_viewModel.summary['total_minutes']}m',
-                style: TextStyle(color: colorScheme.onPrimaryContainer, fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          Icon(Icons.access_time_filled, size: 48, color: colorScheme.primary.withValues(alpha: 0.5)),
-        ],
       ),
     );
   }
@@ -197,7 +187,7 @@ class _WorkSessionReportScreenState extends State<WorkSessionReportScreen> {
               onTap: _selectDate,
               child: InputDecorator(
                 decoration: InputDecoration(
-                  labelText: 'Date',
+                  labelText: 'Date (Week)',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
@@ -220,10 +210,56 @@ class _WorkSessionReportScreenState extends State<WorkSessionReportScreen> {
       ),
     );
   }
+}
 
-  Widget _buildSessionCard(Map<String, dynamic> session, ColorScheme colorScheme) {
+class _WorkSessionSummaryCard extends StatelessWidget {
+  final int totalHours;
+  final int totalMinutes;
+
+  const _WorkSessionSummaryCard({required this.totalHours, required this.totalMinutes});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(20.0),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Total Worked Time', style: TextStyle(color: colorScheme.onPrimaryContainer, fontSize: 14)),
+              const SizedBox(height: 4),
+              Text(
+                '${totalHours}h ${totalMinutes}m',
+                style: TextStyle(color: colorScheme.onPrimaryContainer, fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          Icon(Icons.access_time_filled, size: 48, color: colorScheme.primary.withValues(alpha: 0.5)),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkSessionItemCard extends StatelessWidget {
+  final Map<String, dynamic> session;
+  final String userRole;
+
+  const _WorkSessionItemCard({required this.session, required this.userRole});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final bool isCompleted = session['status'] == 'completed';
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -254,7 +290,7 @@ class _WorkSessionReportScreenState extends State<WorkSessionReportScreen> {
               ],
             ),
             const Divider(),
-            if (_userRole == 'admin' && session['user'] != null) ...[
+            if (userRole == 'admin' && session['user'] != null) ...[
               Row(
                 children: [
                   const Icon(Icons.person, size: 14, color: Colors.grey),
