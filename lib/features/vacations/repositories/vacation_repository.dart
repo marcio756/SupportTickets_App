@@ -1,52 +1,54 @@
-import 'package:supporttickets_app/core/network/api_client.dart';
-import 'package:supporttickets_app/features/vacations/models/vacation_models.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../models/vacation_request.dart';
 
-/// Handles all external data fetching and mutation operations related to Vacations.
-/// Decouples the UI and ViewModels from direct network calls.
+/// Handles all external data fetching and mutation for vacations.
+/// Abstracts the HTTP logic so the ViewModel remains unaware of network protocols.
 class VacationRepository {
-  final ApiClient _apiClient;
+  final http.Client client;
+  final String baseUrl = 'https://api.yourdomain.com/v1';
 
-  VacationRepository({required ApiClient apiClient}) : _apiClient = apiClient;
+  VacationRepository({required this.client});
 
-  /// Retrieves the structured hierarchical calendar data for a specific year.
-  /// * @param year The target year to fetch the calendar for.
-  /// @return A complete list of teams, containing their members and respective vacation requests.
-  Future<List<VacationTeam>> getCalendarData({required int year}) async {
-    final response = await _apiClient.get(
-      '/api/vacations/calendar',
-      queryParameters: {'year': year},
+  /// Retrieves the vacation history and active requests for a specific user.
+  Future<List<VacationRequest>> fetchVacations(String userId) async {
+    final response = await client.get(
+      Uri.parse('$baseUrl/vacations?userId=$userId'),
+      headers: {'Content-Type': 'application/json'},
     );
 
-    final data = response['data'] as Map<String, dynamic>?;
-    if (data == null || !data.containsKey('teams')) {
-      return [];
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body)['data'];
+      return data.map((json) => VacationRequest.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load vacations. Server returned ${response.statusCode}');
     }
-
-    final teamsList = data['teams'] as List<dynamic>;
-    return teamsList.map((json) => VacationTeam.fromJson(json as Map<String, dynamic>)).toList();
   }
 
-  /// Submits a new vacation booking request to the backend.
-  /// * @param startDate The first day of the vacation.
-  /// @param endDate The last day of the vacation.
-  /// @return The newly created Vacation object.
-  Future<Vacation> bookVacation({
-    required DateTime startDate,
-    required DateTime endDate,
-  }) async {
-    // Ensuring dates are sent in strictly 'YYYY-MM-DD' format as expected by Laravel
-    final startStr = '${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}';
-    final endStr = '${endDate.year}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}';
-
-    final response = await _apiClient.post(
-      '/api/vacations',
-      data: {
-        'start_date': startStr,
-        'end_date': endStr,
-      },
+  /// Submits a new vacation request to the backend validation pipeline.
+  Future<VacationRequest> createVacationRequest(VacationRequest request) async {
+    final response = await client.post(
+      Uri.parse('$baseUrl/vacations'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(request.toJson()),
     );
 
-    final data = response['data'] as Map<String, dynamic>;
-    return Vacation.fromJson(data);
+    if (response.statusCode == 201) {
+      return VacationRequest.fromJson(jsonDecode(response.body)['data']);
+    } else {
+      throw Exception('Failed to create vacation request. Server returned ${response.statusCode}');
+    }
+  }
+
+  /// Cancels an existing vacation request by its unique identifier.
+  Future<void> cancelVacationRequest(String vacationId) async {
+    final response = await client.delete(
+      Uri.parse('$baseUrl/vacations/$vacationId'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Failed to cancel vacation request.');
+    }
   }
 }
