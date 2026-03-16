@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Represents a single navigable item within the application's sidebar.
+/// Representa um item de navegação dinâmico do menu lateral.
 class AppMenuItem {
   final String title;
   final IconData icon;

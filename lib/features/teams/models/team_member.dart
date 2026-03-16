@@ -1,43 +1,43 @@
-/// Defines the working shifts available in the system.
-/// Kept as an enum to guarantee type safety across the UI when rendering shift indicators.
+/// Represents the working shift assigned to a team member.
 enum ShiftType { morning, afternoon, night, unknown }
 
-/// Domain model representing a colleague within the same operational team.
+/// Represents a user assigned to a specific support team.
 class TeamMember {
   final String id;
   final String name;
   final String email;
-  final ShiftType shift;
   final String role;
+  final ShiftType shift;
 
   TeamMember({
     required this.id,
     required this.name,
     required this.email,
-    required this.shift,
     required this.role,
+    this.shift = ShiftType.unknown,
   });
 
+  /// Factory constructor to create a TeamMember instance from a JSON map.
   factory TeamMember.fromJson(Map<String, dynamic> json) {
-    return TeamMember(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      email: json['email'] as String,
-      shift: _parseShift(json['shift'] as String?),
-      role: json['role'] as String,
-    );
-  }
+    ShiftType parsedShift = ShiftType.unknown;
 
-  static ShiftType _parseShift(String? shift) {
-    switch (shift?.toLowerCase()) {
-      case 'morning':
-        return ShiftType.morning;
-      case 'afternoon':
-        return ShiftType.afternoon;
-      case 'night':
-        return ShiftType.night;
-      default:
-        return ShiftType.unknown;
+    if (json['shift'] != null) {
+      final shiftStr = json['shift'].toString().toLowerCase();
+      if (shiftStr == 'morning') {
+        parsedShift = ShiftType.morning;
+      } else if (shiftStr == 'afternoon') {
+        parsedShift = ShiftType.afternoon;
+      } else if (shiftStr == 'night') {
+        parsedShift = ShiftType.night;
+      }
     }
+
+    return TeamMember(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'Unknown User',
+      email: json['email']?.toString() ?? '',
+      role: json['role']?.toString() ?? 'supporter',
+      shift: parsedShift,
+    );
   }
 }

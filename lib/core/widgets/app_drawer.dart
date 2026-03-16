@@ -19,6 +19,11 @@ import '../../features/activity_logs/ui/activity_log_screen.dart';
 import '../../features/work_sessions/ui/components/work_session_timer_widget.dart';
 import '../../features/work_sessions/ui/work_session_report_screen.dart';
 
+import '../../features/teams/ui/screens/team_screen.dart';
+import '../../features/teams/ui/screens/admin_team_management_screen.dart';
+import '../../features/vacations/ui/screens/vacation_list_screen.dart';
+import '../../features/vacations/ui/screens/vacation_calendar_screen.dart';
+
 import '../theme/theme_controller.dart';
 
 class AppDrawer extends StatefulWidget {
@@ -43,6 +48,7 @@ class _AppDrawerState extends State<AppDrawer> {
   String _userName = 'Loading...';
   String _userEmail = '';
   String _userRole = ''; 
+  String _userId = '';
   int _unreadNotifications = 0;
 
   @override
@@ -61,6 +67,7 @@ class _AppDrawerState extends State<AppDrawer> {
           _userName = data['name'] ?? 'User';
           _userEmail = data['email'] ?? '';
           _userRole = data['role'] ?? '';
+          _userId = data['id']?.toString() ?? '';
         });
       }
     } catch (e) {
@@ -141,10 +148,6 @@ class _AppDrawerState extends State<AppDrawer> {
             ),
           ),
           
-          /**
-           * Ensure the work session timer only appears for supporters, 
-           * hiding it for the admin role as requested.
-           */
           if (_userRole == 'supporter')
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
@@ -164,9 +167,6 @@ class _AppDrawerState extends State<AppDrawer> {
                   )),
                 ),
                 
-                /**
-                 * Hide Tickets menu for admin
-                 */
                 if (_userRole != 'admin')
                   _buildNavItem(
                     icon: Icons.confirmation_number_rounded,
@@ -176,6 +176,21 @@ class _AppDrawerState extends State<AppDrawer> {
                       authRepository: widget.authRepository, ticketRepository: widget.ticketRepository, profileRepository: widget.profileRepository,
                     )),
                   ),
+
+                if (_userRole == 'supporter') ...[
+                  _buildNavItem(
+                    icon: Icons.people_outline_rounded,
+                    title: 'My Team',
+                    route: 'MyTeam',
+                    onTap: () => _navigateTo('MyTeam', TeamScreen(drawer: widget)), // Passa apenas a referência do menu
+                  ),
+                  _buildNavItem(
+                    icon: Icons.beach_access_outlined,
+                    title: 'My Vacations',
+                    route: 'MyVacations',
+                    onTap: () => _navigateTo('MyVacations', VacationListScreen(userId: _userId, drawer: widget)), // Passa a referência do menu
+                  ),
+                ],
                   
                 _buildNavItem(
                   icon: Icons.notifications_none_rounded,
@@ -203,6 +218,21 @@ class _AppDrawerState extends State<AppDrawer> {
                     padding: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 4.0),
                     child: Text('Management', style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold)),
                   ),
+
+                  if (_userRole == 'admin') ...[
+                    _buildNavItem(
+                      icon: Icons.group_work_outlined,
+                      title: 'Team Management',
+                      route: 'ManageTeams',
+                      onTap: () => _navigateTo('ManageTeams', AdminTeamManagementScreen(drawer: widget)), // Passa a referência do menu
+                    ),
+                    _buildNavItem(
+                      icon: Icons.beach_access_rounded,
+                      title: 'Global Vacations',
+                      route: 'ManageVacations',
+                      onTap: () => _navigateTo('ManageVacations', VacationCalendarScreen(userId: _userId, drawer: widget)), // Passa a referência do menu
+                    ),
+                  ],
                   
                   _buildNavItem(
                     icon: Icons.history_toggle_off_rounded,
@@ -220,7 +250,7 @@ class _AppDrawerState extends State<AppDrawer> {
                     onTap: () => _navigateTo('Users', UserManagementScreen(
                       viewModel: UserManagementViewModel(
                         userRepository: UserRepository(apiClient: widget.authRepository.apiClient),
-                        profileRepository: widget.profileRepository, // <- Passagem Injetada aqui
+                        profileRepository: widget.profileRepository,
                       ),
                       authRepository: widget.authRepository,
                       ticketRepository: widget.ticketRepository,

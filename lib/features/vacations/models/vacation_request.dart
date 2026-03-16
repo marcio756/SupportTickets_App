@@ -1,16 +1,16 @@
-/// Represents the possible states of a vacation request within the approval pipeline.
 enum VacationStatus { pending, approved, rejected }
 
-/// Domain model representing a user's vacation request.
-/// Ensures strict type safety when moving data between the API layer and the UI.
+/// Represents the data structure for a user's vacation request.
+/// Handles resilient JSON parsing to prevent type casting errors between Int and String.
 class VacationRequest {
   final String? id;
   final String userId;
   final String teamId;
   final DateTime startDate;
   final DateTime endDate;
-  final int totalDays;
   final VacationStatus status;
+  final int totalDays;
+  final String? reason;
 
   VacationRequest({
     this.id,
@@ -18,43 +18,50 @@ class VacationRequest {
     required this.teamId,
     required this.startDate,
     required this.endDate,
-    required this.totalDays,
     required this.status,
+    required this.totalDays,
+    this.reason,
   });
 
   factory VacationRequest.fromJson(Map<String, dynamic> json) {
+    VacationStatus parsedStatus = VacationStatus.pending;
+    if (json['status'] != null) {
+      final statusStr = json['status'].toString().toLowerCase();
+      if (statusStr == 'approved') {
+        parsedStatus = VacationStatus.approved;
+      } else if (statusStr == 'rejected') {
+        parsedStatus = VacationStatus.rejected;
+      }
+    }
+
     return VacationRequest(
-      id: json['id'] as String?,
-      userId: json['userId'] as String,
-      teamId: json['teamId'] as String,
-      startDate: DateTime.parse(json['startDate'] as String),
-      endDate: DateTime.parse(json['endDate'] as String),
-      totalDays: json['totalDays'] as int,
-      status: _parseStatus(json['status'] as String),
+      id: json['id']?.toString(), 
+      userId: json['user_id']?.toString() ?? json['userId']?.toString() ?? '', 
+      teamId: json['team_id']?.toString() ?? json['teamId']?.toString() ?? '', 
+      startDate: json['start_date'] != null 
+          ? DateTime.tryParse(json['start_date'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      endDate: json['end_date'] != null 
+          ? DateTime.tryParse(json['end_date'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      status: parsedStatus,
+      totalDays: json['total_days'] != null 
+          ? int.tryParse(json['total_days'].toString()) ?? 0 
+          : 0,
+      reason: json['reason']?.toString(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,
-      'userId': userId,
-      'teamId': teamId,
-      'startDate': startDate.toIso8601String(),
-      'endDate': endDate.toIso8601String(),
-      'totalDays': totalDays,
+      'user_id': userId,
+      'team_id': teamId,
+      'start_date': startDate.toIso8601String().split('T').first,
+      'end_date': endDate.toIso8601String().split('T').first,
       'status': status.name,
+      'total_days': totalDays,
+      if (reason != null) 'reason': reason,
     };
-  }
-
-  static VacationStatus _parseStatus(String status) {
-    switch (status.toLowerCase()) {
-      case 'approved':
-        return VacationStatus.approved;
-      case 'rejected':
-        return VacationStatus.rejected;
-      case 'pending':
-      default:
-        return VacationStatus.pending;
-    }
   }
 }

@@ -8,8 +8,9 @@ import 'vacation_request_screen.dart';
 /// Acts as the primary hub for managing personal requests.
 class VacationListScreen extends StatefulWidget {
   final String userId;
+  final Widget drawer; // Injeção do menu lateral
 
-  const VacationListScreen({super.key, required this.userId});
+  const VacationListScreen({super.key, required this.userId, required this.drawer});
 
   @override
   State<VacationListScreen> createState() => _VacationListScreenState();
@@ -30,16 +31,16 @@ class _VacationListScreenState extends State<VacationListScreen> {
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Cancelar Pedido'),
-        content: const Text('Tem a certeza que pretende cancelar este pedido de férias?'),
+        title: const Text('Cancel Request'), // Traduzido
+        content: const Text('Are you sure you want to cancel this vacation request?'), // Traduzido
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Não'),
+            child: const Text('No'), // Traduzido
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Sim', style: TextStyle(color: Colors.red)),
+            child: const Text('Yes', style: TextStyle(color: Colors.red)), // Traduzido
           ),
         ],
       ),
@@ -51,7 +52,7 @@ class _VacationListScreenState extends State<VacationListScreen> {
           
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pedido cancelado com sucesso.')),
+          const SnackBar(content: Text('Request cancelled successfully.')), // Traduzido
         );
       }
     }
@@ -61,8 +62,9 @@ class _VacationListScreenState extends State<VacationListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('As Minhas Férias'),
+        title: const Text('My Vacations'), // Traduzido
       ),
+      drawer: widget.drawer, // Ativa o botão Hamburger do menu
       body: Consumer<VacationViewModel>(
         builder: (context, viewModel, child) {
           if (viewModel.isLoading && viewModel.vacations.isEmpty) {
@@ -70,11 +72,11 @@ class _VacationListScreenState extends State<VacationListScreen> {
           }
 
           if (viewModel.hasError) {
-            return Center(child: Text('Erro: ${viewModel.errorMessage}'));
+            return Center(child: Text('Error: ${viewModel.errorMessage}')); // Traduzido
           }
 
           if (viewModel.vacations.isEmpty) {
-            return const Center(child: Text('Ainda não tem pedidos de férias.'));
+            return const Center(child: Text('You have no vacation requests yet.')); // Traduzido
           }
 
           return ListView.builder(
@@ -100,7 +102,7 @@ class _VacationListScreenState extends State<VacationListScreen> {
           );
         },
         icon: const Icon(Icons.add),
-        label: const Text('Novo Pedido'),
+        label: const Text('New Request'), // Traduzido
       ),
     );
   }

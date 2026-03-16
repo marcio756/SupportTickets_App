@@ -16,6 +16,14 @@ import 'features/tickets/repositories/ticket_repository.dart';
 import 'features/work_sessions/repositories/work_session_repository.dart';
 import 'features/work_sessions/viewmodels/work_session_viewmodel.dart';
 
+import 'features/teams/repositories/team_repository.dart';
+import 'features/teams/viewmodels/team_viewmodel.dart';
+import 'features/vacations/repositories/vacation_repository.dart';
+import 'features/vacations/viewmodels/vacation_viewmodel.dart';
+
+// Novo import necessário para a injeção global do Perfil
+import 'features/profile/viewmodels/profile_viewmodel.dart';
+
 /// Application entry point. Ensures all global dependencies are initialized
 /// before the widget tree is mounted.
 void main() async {
@@ -37,12 +45,30 @@ void main() async {
   final ticketRepository = TicketRepository(apiClient: apiClient);
   final profileRepository = ProfileRepository(apiClient: apiClient);
   final workSessionRepository = WorkSessionRepository(apiClient: apiClient);
+  
+  final teamRepository = TeamRepository(apiClient: apiClient);
+  final vacationRepository = VacationRepository(apiClient: apiClient);
 
   runApp(
-    // We inject the WorkSessionViewModel at the root of the app so it persists 
-    // across route changes and drawer toggles.
-    ChangeNotifierProvider(
-      create: (_) => WorkSessionViewModel(repository: workSessionRepository)..loadCurrentSession(),
+    // We inject the ViewModels at the root of the app using MultiProvider
+    // so they persist across route changes and drawer toggles.
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => WorkSessionViewModel(repository: workSessionRepository)..loadCurrentSession(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => TeamViewModel(repository: teamRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => VacationViewModel(repository: vacationRepository),
+        ),
+        // Injeção do ProfileViewModel a nível global. 
+        // A chamada loadProfileData() garante que os dados do utilizador (como o teamId) são logo colocados em cache.
+        ChangeNotifierProvider(
+          create: (_) => ProfileViewModel(profileRepository: profileRepository)..loadProfileData(),
+        ),
+      ],
       child: SupportTicketsApp(
         authRepository: authRepository,
         ticketRepository: ticketRepository,

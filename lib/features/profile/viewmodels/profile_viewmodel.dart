@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart';
 import '../repositories/profile_repository.dart';
 
-/// ViewModel responsible for managing the state and business logic of the user profile.
+/// Manages the state and business logic of the user profile, 
+/// acting as the single source of truth for the authenticated user's identity and organizational placement.
 class ProfileViewModel extends ChangeNotifier {
   final ProfileRepository profileRepository;
 
@@ -10,6 +11,8 @@ class ProfileViewModel extends ChangeNotifier {
   
   String _name = '';
   String _email = '';
+  String _teamId = '';
+  String _teamName = '';
 
   ProfileViewModel({required this.profileRepository});
 
@@ -17,8 +20,10 @@ class ProfileViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String get name => _name;
   String get email => _email;
+  String get teamId => _teamId;
+  String get teamName => _teamName;
 
-  /// Fetches the authenticated user profile data from the backend.
+  /// Fetches the authenticated user profile data from the backend to hydrate the global application state.
   Future<void> loadProfileData({Function(String)? onError}) async {
     _isFetching = true;
     notifyListeners();
@@ -29,6 +34,10 @@ class ProfileViewModel extends ChangeNotifier {
 
       _name = data['name'] ?? '';
       _email = data['email'] ?? '';
+      
+      // Persists the organizational association locally to feed other feature modules (e.g., Teams, Vacations).
+      _teamId = data['team_id']?.toString() ?? ''; 
+      _teamName = data['team_name']?.toString() ?? ''; 
     } catch (e) {
       if (onError != null) {
         onError(e.toString().replaceAll('Exception: ', ''));
@@ -39,7 +48,7 @@ class ProfileViewModel extends ChangeNotifier {
     }
   }
 
-  /// Validates and sends the updated user profile data to the API.
+  /// Validates and synchronizes the mutated user profile data with the external API.
   Future<void> updateProfile({
     required String name,
     required String email,
@@ -78,7 +87,7 @@ class ProfileViewModel extends ChangeNotifier {
     }
   }
 
-  /// Handles the account deactivation process.
+  /// Initiates the soft-delete sequence for the current user entity.
   Future<void> deactivateAccount({
     required String password,
     required Function() onSuccess,

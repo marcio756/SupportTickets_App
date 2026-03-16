@@ -7,8 +7,9 @@ import '../../models/vacation_request.dart';
 /// Displays a unified calendar view mapping out approved vacations across the team.
 class VacationCalendarScreen extends StatefulWidget {
   final String userId;
+  final Widget drawer; // Injeção do menu lateral
 
-  const VacationCalendarScreen({super.key, required this.userId});
+  const VacationCalendarScreen({super.key, required this.userId, required this.drawer});
 
   @override
   State<VacationCalendarScreen> createState() => _VacationCalendarScreenState();
@@ -21,7 +22,6 @@ class _VacationCalendarScreenState extends State<VacationCalendarScreen> {
   @override
   void initState() {
     super.initState();
-    // Dispatch the fetch command immediately after the widget is inserted into the tree.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<VacationViewModel>(context, listen: false)
           .loadVacations(widget.userId);
@@ -40,12 +40,25 @@ class _VacationCalendarScreenState extends State<VacationCalendarScreen> {
     }).toList();
   }
 
+  /// Calculates the total approved vacation days for the current year to enforce the 22-day limit visually.
+  int _calculateUsedDays(List<VacationRequest> allVacations) {
+    final currentYear = DateTime.now().year;
+    int usedDays = 0;
+    for (var vacation in allVacations) {
+      if (vacation.status == VacationStatus.approved && vacation.startDate.year == currentYear) {
+        usedDays += vacation.totalDays;
+      }
+    }
+    return usedDays;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Calendário de Férias'),
+        title: const Text('Vacation Calendar'),
       ),
+      drawer: widget.drawer, // Ativa o botão Hamburger do menu
       body: Consumer<VacationViewModel>(
         builder: (context, viewModel, child) {
           if (viewModel.isLoading) {
@@ -55,14 +68,18 @@ class _VacationCalendarScreenState extends State<VacationCalendarScreen> {
           if (viewModel.hasError) {
             return Center(
               child: Text(
-                'Erro ao carregar calendário: ${viewModel.errorMessage}',
+                'Error loading calendar: ${viewModel.errorMessage}',
                 style: const TextStyle(color: Colors.red),
               ),
             );
           }
 
+          final usedDays = _calculateUsedDays(viewModel.vacations);
+          final remainingDays = 22 - usedDays;
+
           return Column(
             children: [
+              _buildVacationCounters(usedDays, remainingDays),
               TableCalendar<VacationRequest>(
                 firstDay: DateTime.utc(2020, 1, 1),
                 lastDay: DateTime.utc(2030, 12, 31),
@@ -93,6 +110,50 @@ class _VacationCalendarScreenState extends State<VacationCalendarScreen> {
     );
   }
 
+  /// Builds the top visual counter for used and remaining vacation days.
+  Widget _buildVacationCounters(int usedDays, int remainingDays) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildCounterCard('Used Days', usedDays.toString(), Colors.orange),
+          _buildCounterCard('Remaining', remainingDays.toString(), Colors.green),
+          _buildCounterCard('Total Limit', '22', Colors.blue),
+        ],
+      ),
+    );
+  }
+
+  /// Helper to build a single counter card.
+  Widget _buildCounterCard(String title, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.2), // Correção do deprecated withOpacity
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: color),
+          ),
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   /// Renders the list of vacations specific to the currently selected calendar day.
   Widget _buildEventList(List<VacationRequest> allVacations) {
     final selectedEvents = _selectedDay == null 
@@ -100,7 +161,7 @@ class _VacationCalendarScreenState extends State<VacationCalendarScreen> {
         : _getVacationsForDay(_selectedDay!, allVacations);
 
     if (selectedEvents.isEmpty) {
-      return const Center(child: Text('Sem férias marcadas para este dia.'));
+      return const Center(child: Text('No vacations scheduled for this day.'));
     }
 
     return ListView.builder(
@@ -109,8 +170,8 @@ class _VacationCalendarScreenState extends State<VacationCalendarScreen> {
         final event = selectedEvents[index];
         return ListTile(
           leading: const Icon(Icons.beach_access, color: Colors.blue),
-          title: Text('Utilizador: ${event.userId}'),
-          subtitle: Text('Estado: ${event.status.name} | Dias: ${event.totalDays}'),
+          title: Text('User: ${event.userId}'),
+          subtitle: Text('Status: ${event.status.name} | Days: ${event.totalDays}'),
         );
       },
     );
