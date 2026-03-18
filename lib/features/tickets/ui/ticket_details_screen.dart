@@ -12,6 +12,7 @@ import 'components/support_time_display.dart';
 import 'components/ticket_tags_dialog.dart';
 import '../../../core/widgets/progress_illusion_bar.dart';
 
+/// Screen displaying the full conversation and metadata of a specific support ticket.
 class TicketDetailsScreen extends StatefulWidget {
   final Ticket ticket;
   final TicketRepository ticketRepository;
@@ -82,7 +83,10 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
           currentTags: _viewModel.ticket.tags,
           onSave: (List<int> selectedIds) async {
             final success = await _viewModel.syncTicketTags(selectedIds);
-            if (!success && context.mounted && _viewModel.errorMessage != null) {
+            
+            if (!context.mounted) return;
+            
+            if (!success && _viewModel.errorMessage != null) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(_viewModel.errorMessage!),
@@ -133,8 +137,8 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
             listenable: _viewModel,
             builder: (context, _) {
               final bool isTicketInProgress = _viewModel.ticket.status == 'in_progress';
-              final bool ticketHasAssignee = _viewModel.ticket.assigneeId != null;
-              final bool isAssignedToMe = ticketHasAssignee && _viewModel.ticket.assigneeId == _viewModel.currentUserId;
+              final bool isAssignedToMe = _viewModel.ticket.assigneeId != null && 
+                                         _viewModel.ticket.assigneeId == _viewModel.currentUserId;
 
               return Row(
                 mainAxisSize: MainAxisSize.min,
@@ -160,7 +164,6 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
           child: ListenableBuilder(
             listenable: _viewModel,
             builder: (context, _) {
-              // Renders a fast illusion bar while background operations are resolving optimistically
               if (_viewModel.isUpdatingStatus || _viewModel.isClaiming) {
                 return const ProgressIllusionBar(isComplete: false);
               }
@@ -185,7 +188,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: _viewModel.initialize,
-                      child: const Text('Tentar Novamente'),
+                      child: const Text('Try Again'),
                     )
                   ],
                 ),
@@ -209,7 +212,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
                     ),
                     subtitle: Text(
-                      'Clique para ver detalhes e opções',
+                      'Tap to view details and options',
                       style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
                     ),
                     childrenPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0).copyWith(top: 0),
@@ -233,7 +236,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                           Expanded(
                             child: _viewModel.ticket.tags.isEmpty 
                                 ? Text(
-                                    'Nenhuma tag associada', 
+                                    'No tags associated', 
                                     style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13, fontStyle: FontStyle.italic)
                                   )
                                 : Wrap(
@@ -262,13 +265,13 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                                     }).toList(),
                                   ),
                           ),
-                          if (_viewModel.isSupporter)
+                          if (_viewModel.isStaff)
                             IconButton(
                               icon: Icon(Icons.edit_note, color: colorScheme.primary),
                               iconSize: 20,
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),
-                              tooltip: 'Gerir Tags',
+                              tooltip: 'Manage Tags',
                               onPressed: () => _showTagsDialog(context),
                             ),
                         ],
@@ -278,19 +281,19 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
 
                       _buildUserInfoRow(
                         Icons.person, 
-                        'Cliente', 
-                        _viewModel.ticket.customerName ?? 'Desconhecido', 
+                        'Customer', 
+                        _viewModel.ticket.customerName ?? 'Unknown', 
                         colorScheme.onSurfaceVariant
                       ),
 
                       if (ticketHasAssignee)
                         _buildUserInfoRow(
                           Icons.support_agent, 
-                          'Suporte', 
-                          isAssignedToMe ? '${_viewModel.ticket.assigneeName!} (Tu)' : _viewModel.ticket.assigneeName!, 
+                          'Support', 
+                          isAssignedToMe ? '${_viewModel.ticket.assigneeName!} (You)' : _viewModel.ticket.assigneeName!, 
                           colorScheme.primary
                         )
-                      else if (_viewModel.isSupporter) ...[
+                      else if (_viewModel.isStaff) ...[
                         const SizedBox(height: 8),
                         SizedBox(
                           width: double.infinity,
@@ -302,24 +305,24 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                             icon: _viewModel.isClaiming 
                                 ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.onPrimary))
                                 : const Icon(Icons.pan_tool, size: 18),
-                            label: const Text('Reivindicar Ticket'),
+                            label: const Text('Claim Ticket'),
                             onPressed: _viewModel.isClaiming ? null : _viewModel.claimTicket,
                           ),
                         ),
                       ],
 
-                      if (_viewModel.isSupporter) ...[
+                      if (_viewModel.isStaff && _viewModel.hasWritePermission) ...[
                         const SizedBox(height: 12),
                         Divider(color: colorScheme.outlineVariant),
                         const SizedBox(height: 8),
                         Text(
-                          'Alterar Estado do Ticket:',
+                          'Change Ticket Status:',
                           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: colorScheme.onSurface),
                         ),
                         const SizedBox(height: 8),
                         TicketStatusDropdown(
                           currentStatus: _viewModel.ticket.status,
-                          isLoading: false, // UI Optimista: a dropdown não precisa bloquear
+                          isLoading: false, 
                           onStatusChanged: (newStatus) {
                             _viewModel.updateStatus(newStatus);
                           },
@@ -339,7 +342,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                         itemBuilder: (context, index) => MessageBubbleSkeleton(isSender: index % 2 == 0),
                       )
                     : _viewModel.messages.isEmpty
-                        ? Center(child: Text('Ainda não há mensagens. Comece a conversa!', style: TextStyle(color: colorScheme.onSurfaceVariant)))
+                        ? Center(child: Text('No messages yet. Start the conversation!', style: TextStyle(color: colorScheme.onSurfaceVariant)))
                         : ListView.builder(
                             controller: _scrollController,
                             padding: const EdgeInsets.all(16),
@@ -347,7 +350,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                             itemBuilder: (context, index) {
                               final message = _viewModel.messages[index];
                               return Opacity(
-                                opacity: message.id < 0 ? 0.6 : 1.0, // Temporary optimistic state
+                                opacity: message.id < 0 ? 0.6 : 1.0, 
                                 child: MessageBubble(message: message),
                               );
                             },
@@ -355,13 +358,19 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
               ),
 
               TicketChatInput(
-                isSending: false, // Optimistic UI: input always unlocked
-                isEnabled: isTicketInProgress,
-                onSendMessage: (text, attachment) async {
-                  final success = await _viewModel.sendMessage(text, attachment: attachment);
+                isSending: false,
+                mentionableUsers: _viewModel.mentionableUsers,
+                isEnabled: isTicketInProgress && (!_viewModel.isStaff || _viewModel.hasWritePermission),
+                onSendMessage: (text, attachment, mentions) async {
+                  final success = await _viewModel.sendMessage(
+                    text, 
+                    attachment: attachment,
+                    mentions: mentions,
+                  );
                   
-                  if (!success && mounted && _viewModel.errorMessage != null) {
-                    // ignore: use_build_context_synchronously
+                  if (!mounted) return;
+                  
+                  if (!success && _viewModel.errorMessage != null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(_viewModel.errorMessage!),

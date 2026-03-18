@@ -148,7 +148,8 @@ class TicketRepository {
   }
 
   /// Sends a new message within a specific ticket thread.
-  Future<TicketMessage> sendMessage(int ticketId, String? message, {int? userId, PlatformFile? attachment}) async {
+  /// Supports attaching files and mentioning other users (IDs).
+  Future<TicketMessage> sendMessage(int ticketId, String? message, {int? userId, PlatformFile? attachment, List<String>? mentions}) async {
     dynamic payload;
     Options? requestOptions;
 
@@ -167,13 +168,26 @@ class TicketRepository {
         );
       }
 
-      payload = FormData.fromMap({
+      final formDataMap = <String, dynamic>{
         'message': message?.trim() ?? '',
         'attachment': multipartFile,
-      });
+      };
+
+      payload = FormData.fromMap(formDataMap);
+
+      // Dio requires array fields to be appended correctly in FormData
+      if (mentions != null && mentions.isNotEmpty) {
+        for (var i = 0; i < mentions.length; i++) {
+          (payload as FormData).fields.add(MapEntry('mentions[$i]', mentions[i]));
+        }
+      }
+
       requestOptions = Options(contentType: 'multipart/form-data');
     } else {
-      payload = {'message': message?.trim() ?? ''};
+      payload = {
+        'message': message?.trim() ?? '',
+        if (mentions != null && mentions.isNotEmpty) 'mentions': mentions,
+      };
     }
 
     final Map<String, dynamic> response = await apiClient.post(

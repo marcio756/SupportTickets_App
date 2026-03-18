@@ -17,6 +17,7 @@ class Ticket {
   final String? senderEmail;
 
   final List<Map<String, dynamic>> tags;
+  final List<Map<String, dynamic>> participants;
 
   Ticket({
     required this.id,
@@ -32,6 +33,7 @@ class Ticket {
     this.source = 'web',
     this.senderEmail,
     this.tags = const [],
+    this.participants = const [],
   });
 
   /// Factory constructor for creating a Ticket from a JSON map.
@@ -58,6 +60,7 @@ class Ticket {
       senderEmail: json['sender_email'] as String?,
 
       tags: (json['tags'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [],
+      participants: (json['participants'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [],
     );
   }
 
@@ -76,6 +79,7 @@ class Ticket {
     String? source,
     String? senderEmail,
     List<Map<String, dynamic>>? tags,
+    List<Map<String, dynamic>>? participants,
   }) {
     return Ticket(
       id: id ?? this.id,
@@ -91,6 +95,7 @@ class Ticket {
       source: source ?? this.source,
       senderEmail: senderEmail ?? this.senderEmail,
       tags: tags ?? this.tags,
+      participants: participants ?? this.participants,
     );
   }
 }

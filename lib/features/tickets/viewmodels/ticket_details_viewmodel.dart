@@ -5,6 +5,7 @@ import '../models/ticket.dart';
 import '../models/ticket_message.dart';
 import '../repositories/ticket_repository.dart';
 import '../../profile/repositories/profile_repository.dart';
+import '../../users/repositories/user_repository.dart';
 
 /// ViewModel responsible for managing the state and logic of a specific ticket's details.
 class TicketDetailsViewModel extends ChangeNotifier {
@@ -15,6 +16,8 @@ class TicketDetailsViewModel extends ChangeNotifier {
 
   List<TicketMessage> _messages = [];
   List<Map<String, dynamic>> _availableTags = [];
+  List<Map<String, dynamic>> _mentionableUsers = [];
+  
   bool _isLoading = false;
   bool _isSending = false;
   bool _isUpdatingStatus = false;
@@ -33,6 +36,8 @@ class TicketDetailsViewModel extends ChangeNotifier {
 
   List<TicketMessage> get messages => _messages;
   List<Map<String, dynamic>> get availableTags => _availableTags;
+  List<Map<String, dynamic>> get mentionableUsers => _mentionableUsers;
+  
   bool get isLoading => _isLoading;
   bool get isSending => _isSending;
   bool get isUpdatingStatus => _isUpdatingStatus;
@@ -40,7 +45,18 @@ class TicketDetailsViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   int? get currentUserId => _currentUserId;
   
-  bool get isSupporter => _currentUserRole == 'supporter';
+  // Role Definitions
+  bool get isStaff => _currentUserRole == 'supporter' || _currentUserRole == 'admin';
+  bool get isAdmin => _currentUserRole == 'admin';
+
+  /// Check explicit write permissions based on assignments or mentions
+  bool get hasWritePermission {
+    if (!isStaff) return false;
+    if (isAdmin) return true;
+    if (ticket.assigneeId == _currentUserId) return true;
+    if (ticket.participants.any((p) => p['id'] == _currentUserId)) return true;
+    return false;
+  }
 
   @override
   void dispose() {
@@ -58,17 +74,43 @@ class TicketDetailsViewModel extends ChangeNotifier {
       final profileData = profileResponse.containsKey('data') ? profileResponse['data'] : profileResponse;
       
       if (profileData != null) {
-        if (profileData['id'] != null) {
-          _currentUserId = int.tryParse(profileData['id'].toString());
-        }
-        if (profileData['role'] != null) {
-          _currentUserRole = profileData['role'].toString();
-        }
+        if (profileData['id'] != null) _currentUserId = int.tryParse(profileData['id'].toString());
+        if (profileData['role'] != null) _currentUserRole = profileData['role'].toString();
       }
 
-      // Pre-load tags if user is a supporter for efficient editing UI
-      if (isSupporter) {
+      // Load Tags and Mentionable Users if Staff
+      if (isStaff) {
         _availableTags = await ticketRepository.getTags();
+        
+        final userRepo = UserRepository(apiClient: ticketRepository.apiClient);
+        
+        // Fetch all users and filter locally to avoid hitting undefined specific endpoints
+        final allUsers = await userRepo.getUsers();
+        final staffMembers = allUsers.where((u) => u.role == 'supporter' || u.role == 'admin');
+        
+        // Explicitly casting the Map to <String, dynamic> to prevent Dart type inference errors
+        _mentionableUsers = staffMembers.map<Map<String, dynamic>>((u) => <String, dynamic>{
+          'id': u.id.toString(), 
+          'name': u.name, 
+          'role': u.role
+        }).toList();
+      }
+
+      // Inject the Ticket's Customer or External Email into the mentionable list
+      if (ticket.customerName != null && ticket.customerId != null) {
+         if (!_mentionableUsers.any((u) => u['id'] == ticket.customerId.toString())) {
+           _mentionableUsers.add(<String, dynamic>{
+             'id': ticket.customerId.toString(), 
+             'name': ticket.customerName, 
+             'role': 'customer'
+           });
+         }
+      } else if (ticket.senderEmail != null) {
+         _mentionableUsers.add(<String, dynamic>{
+           'id': ticket.senderEmail, 
+           'name': ticket.senderEmail, 
+           'role': 'customer'
+         });
       }
 
       await loadMessages();
@@ -92,13 +134,11 @@ class TicketDetailsViewModel extends ChangeNotifier {
   }
 
   /// Sends a message using Optimistic UI principles.
-  /// Renders a temporary message bubble immediately, and rolls back if the API call fails.
-  Future<bool> sendMessage(String? messageText, {PlatformFile? attachment}) async {
+  Future<bool> sendMessage(String? messageText, {PlatformFile? attachment, List<String>? mentions}) async {
     if ((messageText == null || messageText.trim().isEmpty) && attachment == null) return false;
 
-    // Build optimistic temporary message mapping
     final tempJson = {
-      'id': -(DateTime.now().millisecondsSinceEpoch), // Negative ID to mark as temp
+      'id': -(DateTime.now().millisecondsSinceEpoch),
       'ticket_id': ticket.id,
       'user_id': _currentUserId,
       'message': messageText ?? '',
@@ -109,7 +149,7 @@ class TicketDetailsViewModel extends ChangeNotifier {
 
     _isSending = true;
     _errorMessage = null;
-    _messages.add(tempMessage); // Optimistic addition
+    _messages.add(tempMessage);
     notifyListeners();
 
     try {
@@ -118,15 +158,14 @@ class TicketDetailsViewModel extends ChangeNotifier {
         messageText, 
         userId: _currentUserId,
         attachment: attachment,
+        mentions: mentions,
       );
       
-      // Replace temporary message with the definitive server response
       _messages.removeWhere((m) => m.id == tempMessage.id);
       _messages.add(realMessage);
       
       return true;
     } catch (e) {
-      // Rollback optimistic update
       _messages.removeWhere((m) => m.id == tempMessage.id);
       _errorMessage = 'Failed to send message: ${e.toString().replaceAll('Exception: ', '')}';
       return false;
@@ -136,21 +175,16 @@ class TicketDetailsViewModel extends ChangeNotifier {
     }
   }
 
-  /// Updates the ticket status using Optimistic UI principles.
   Future<void> updateStatus(String newStatus) async {
     final String oldStatus = ticket.status;
-    
-    // Optimistic status update
     ticket = ticket.copyWith(status: newStatus);
     _isUpdatingStatus = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final updatedTicket = await ticketRepository.updateTicketStatus(ticket.id, newStatus);
-      ticket = updatedTicket;
+      ticket = await ticketRepository.updateTicketStatus(ticket.id, newStatus);
     } catch (e) {
-      // Rollback to previous status if the network request fails
       ticket = ticket.copyWith(status: oldStatus);
       _errorMessage = 'Failed to update status: ${e.toString().replaceAll('Exception: ', '')}';
     } finally {
@@ -170,7 +204,7 @@ class TicketDetailsViewModel extends ChangeNotifier {
       final updatedData = response.containsKey('data') ? response['data'] : response;
       ticket = Ticket.fromJson(updatedData as Map<String, dynamic>);
     } catch (e) {
-      _errorMessage = 'Falha ao reivindicar: ${e.toString().replaceAll('Exception: ', '')}';
+      _errorMessage = 'Failed to claim ticket: ${e.toString().replaceAll('Exception: ', '')}';
     } finally {
       _isClaiming = false;
       _evaluateTimer(); 
@@ -178,9 +212,8 @@ class TicketDetailsViewModel extends ChangeNotifier {
     }
   }
 
-  /// Synchronizes the ticket's tags directly with the backend.
   Future<bool> syncTicketTags(List<int> selectedTagIds) async {
-    _isLoading = true; // Block UI locally while saving
+    _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
@@ -188,7 +221,7 @@ class TicketDetailsViewModel extends ChangeNotifier {
       ticket = await ticketRepository.syncTags(ticket.id, selectedTagIds);
       return true;
     } catch (e) {
-      _errorMessage = 'Falha ao sincronizar tags: ${e.toString().replaceAll('Exception: ', '')}';
+      _errorMessage = 'Failed to sync tags: ${e.toString().replaceAll('Exception: ', '')}';
       return false;
     } finally {
       _isLoading = false;
@@ -197,10 +230,7 @@ class TicketDetailsViewModel extends ChangeNotifier {
   }
 
   void _evaluateTimer() {
-    final bool shouldRun = isSupporter &&
-        ticket.status == 'in_progress' &&
-        ticket.assigneeId == _currentUserId;
-
+    final bool shouldRun = isStaff && hasWritePermission && ticket.status == 'in_progress';
     if (shouldRun && _supportTimer == null) {
       _tickTime();
       _supportTimer = Timer.periodic(const Duration(seconds: 5), (_) => _tickTime());
@@ -214,12 +244,8 @@ class TicketDetailsViewModel extends ChangeNotifier {
     try {
       final response = await ticketRepository.tickTime(ticket.id, {});
       final data = response.containsKey('data') ? response['data'] : response;
-
       if (data != null && data['remaining_seconds'] != null) {
-        final int seconds = data['remaining_seconds'] as int;
-        final formattedTime = _formatSeconds(seconds);
-
-        ticket = ticket.copyWith(supportTime: formattedTime);
+        ticket = ticket.copyWith(supportTime: _formatSeconds(data['remaining_seconds'] as int));
         notifyListeners();
       }
     } catch (e) {
@@ -232,7 +258,6 @@ class TicketDetailsViewModel extends ChangeNotifier {
     final hours = totalSeconds ~/ 3600;
     final minutes = (totalSeconds % 3600) ~/ 60;
     final seconds = totalSeconds % 60;
-    
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 }

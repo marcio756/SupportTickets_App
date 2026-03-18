@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/ticket_message.dart';
 import 'attachment_preview.dart';
 
-/// Renders a single chat bubble for a ticket message.
+/// Renders a single chat bubble for a ticket message, with mention highlighting capabilities.
 class MessageBubble extends StatelessWidget {
   final TicketMessage message;
 
@@ -14,6 +14,60 @@ class MessageBubble extends StatelessWidget {
   /// Formats the DateTime to a readable hour/minute string.
   String _formatTime(DateTime time) {
     return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  /// Parses the message text and highlights any @mentions to mimic Discord UI style.
+  Widget _buildMessageContent(BuildContext context, String text, bool isMe, ColorScheme colorScheme) {
+    // Regex matches @Name and @email formats
+    final RegExp mentionRegex = RegExp(r'@([a-zA-Z0-9_À-ÿ.\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}|[a-zA-Z0-9_À-ÿ]+)');
+    final matches = mentionRegex.allMatches(text);
+
+    if (matches.isEmpty) {
+      return Text(
+        text,
+        style: TextStyle(
+          fontSize: 15,
+          color: isMe ? colorScheme.onPrimary : colorScheme.onSurface,
+        ),
+      );
+    }
+
+    List<TextSpan> spans = [];
+    int lastMatchEnd = 0;
+
+    for (final match in matches) {
+      if (match.start > lastMatchEnd) {
+        spans.add(TextSpan(text: text.substring(lastMatchEnd, match.start)));
+      }
+      
+      // The Mention Highlight Block
+      spans.add(TextSpan(
+        text: match.group(0),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: isMe ? Colors.white : colorScheme.primary,
+          backgroundColor: isMe 
+              ? Colors.white.withValues(alpha: 0.2) 
+              : colorScheme.primaryContainer.withValues(alpha: 0.5),
+        ),
+      ));
+      lastMatchEnd = match.end;
+    }
+
+    if (lastMatchEnd < text.length) {
+      spans.add(TextSpan(text: text.substring(lastMatchEnd)));
+    }
+
+    return RichText(
+      text: TextSpan(
+        style: TextStyle(
+          fontSize: 15,
+          color: isMe ? colorScheme.onPrimary : colorScheme.onSurface,
+          height: 1.3,
+        ),
+        children: spans,
+      ),
+    );
   }
 
   @override
@@ -65,13 +119,7 @@ class MessageBubble extends StatelessWidget {
                 if (message.message.isNotEmpty)
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Text(
-                      message.message,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: isMe ? colorScheme.onPrimary : colorScheme.onSurface,
-                      ),
-                    ),
+                    child: _buildMessageContent(context, message.message, isMe, colorScheme),
                   ),
                 
                 if (message.attachmentUrl != null && message.attachmentUrl!.isNotEmpty)
