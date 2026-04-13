@@ -1,3 +1,5 @@
+// Ficheiro: lib/features/tickets/viewmodels/ticket_list_viewmodel.dart
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/ticket.dart';
 import '../repositories/ticket_repository.dart';
@@ -13,6 +15,12 @@ class TicketListViewModel extends ChangeNotifier {
   bool _isSyncing = false;
   String? _errorMessage;
 
+  // Pagination States
+  int _currentPage = 1;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+  static const int _perPageLimit = 15; // Assume-se 15 como o default do Laravel paginate()
+
   // Filter States
   String _searchQuery = '';
   String? _statusFilter;
@@ -24,6 +32,8 @@ class TicketListViewModel extends ChangeNotifier {
   List<Map<String, dynamic>> _customers = [];
   List<Map<String, dynamic>> _tags = [];
 
+  Timer? _debounceTimer;
+
   /// Initializes the ViewModel with the required repository and loads metadata (customers and tags) if applicable.
   TicketListViewModel({required this.ticketRepository}) {
     _loadCustomers();
@@ -33,8 +43,14 @@ class TicketListViewModel extends ChangeNotifier {
   /// The current list of loaded tickets.
   List<Ticket> get tickets => _tickets;
 
-  /// Indicates whether a network request is currently in progress for the main list.
+  /// Indicates whether an initial network request is currently in progress.
   bool get isLoading => _isLoading;
+
+  /// Indicates whether we are currently fetching the next page of data.
+  bool get isLoadingMore => _isLoadingMore;
+
+  /// Indicates if there are more pages available to fetch from the backend.
+  bool get hasMore => _hasMore;
 
   /// Indicates whether a background synchronization is in progress.
   bool get isSyncing => _isSyncing;
@@ -53,43 +69,53 @@ class TicketListViewModel extends ChangeNotifier {
   List<Map<String, dynamic>> get customers => _customers;
   List<Map<String, dynamic>> get tags => _tags;
 
-  /// Updates the search query and triggers a reload.
+  /// Updates the search query using a debounce to prevent excessive API requests, then reloads from page 1.
   void setSearchQuery(String query) {
-    _searchQuery = query;
-    loadTickets();
+    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+    
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      if (_searchQuery == query) return;
+      _searchQuery = query;
+      loadTickets(reset: true);
+    });
   }
 
-  /// Updates the status filter without automatically triggering a reload.
+  /// Updates the status filter and automatically triggers a reload.
   void setStatusFilter(String? status) {
+    if (_statusFilter == status) return;
     _statusFilter = status;
-    notifyListeners();
+    loadTickets(reset: true);
   }
 
-  /// Updates the source filter without automatically triggering a reload.
+  /// Updates the source filter and automatically triggers a reload.
   void setSourceFilter(String? source) {
+    if (_sourceFilter == source) return;
     _sourceFilter = source;
-    notifyListeners();
+    loadTickets(reset: true);
   }
 
-  /// Updates the customer filter without automatically triggering a reload.
+  /// Updates the customer filter and automatically triggers a reload.
   void setCustomerFilter(int? customerId) {
+    if (_customerFilter == customerId) return;
     _customerFilter = customerId;
-    notifyListeners();
+    loadTickets(reset: true);
   }
 
-  /// Updates the assignee filter without automatically triggering a reload.
+  /// Updates the assignee filter and automatically triggers a reload.
   void setAssigneeFilter(String? assignee) {
+    if (_assigneeFilter == assignee) return;
     _assigneeFilter = assignee;
-    notifyListeners();
+    loadTickets(reset: true);
   }
 
-  /// Updates the tag filter without automatically triggering a reload.
+  /// Updates the tag filter and automatically triggers a reload.
   void setTagFilter(int? tagId) {
+    if (_tagFilter == tagId) return;
     _tagFilter = tagId;
-    notifyListeners();
+    loadTickets(reset: true);
   }
 
-  /// Clears all active filters and reloads the ticket list.
+  /// Clears all active filters and reloads the ticket list from page 1.
   void clearFilters() {
     _searchQuery = '';
     _statusFilter = null;
@@ -97,11 +123,9 @@ class TicketListViewModel extends ChangeNotifier {
     _customerFilter = null;
     _assigneeFilter = null;
     _tagFilter = null;
-    loadTickets();
+    loadTickets(reset: true);
   }
 
-  /// Fetches the list of customers for filtering. 
-  /// Fails silently if the user is not a supporter.
   Future<void> _loadCustomers() async {
     try {
       _customers = await ticketRepository.getCustomers();
@@ -111,8 +135,6 @@ class TicketListViewModel extends ChangeNotifier {
     }
   }
 
-  /// Fetches the list of tags for filtering. 
-  /// Fails silently if the user is not a supporter or tags are unavailable.
   Future<void> _loadTags() async {
     try {
       _tags = await ticketRepository.getTags();
@@ -122,7 +144,6 @@ class TicketListViewModel extends ChangeNotifier {
     }
   }
 
-  /// Compiles active filters into a map suitable for API query parameters.
   Map<String, dynamic> _buildFilterMap() {
     return {
       if (_searchQuery.trim().isNotEmpty) 'search': _searchQuery.trim(),
@@ -134,23 +155,51 @@ class TicketListViewModel extends ChangeNotifier {
     };
   }
 
-  /// Fetches the tickets from the repository applying the current filters.
-  Future<void> loadTickets() async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+  /// Fetches the tickets. If [reset] is true, clears the list and starts from page 1.
+  Future<void> loadTickets({bool reset = false}) async {
+    if (reset) {
+      _currentPage = 1;
+      _hasMore = true;
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+    } else {
+      if (!_hasMore || _isLoadingMore || _isLoading) return;
+      _isLoadingMore = true;
+      notifyListeners();
+    }
 
     try {
-      _tickets = await ticketRepository.getTickets(filters: _buildFilterMap());
+      final newTickets = await ticketRepository.getTickets(
+        filters: _buildFilterMap(),
+        page: _currentPage,
+      );
+
+      if (reset) {
+        _tickets = newTickets;
+      } else {
+        _tickets.addAll(newTickets);
+      }
+
+      // If the backend returns fewer items than the limit, we've reached the end
+      if (newTickets.length < _perPageLimit) {
+        _hasMore = false;
+      } else {
+        _currentPage++;
+      }
+      
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
+      // If fetching the first page fails, we stop hasMore to prevent infinite error loops
+      if (reset) _hasMore = false; 
     } finally {
       _isLoading = false;
+      _isLoadingMore = false;
       notifyListeners();
     }
   }
   
-  /// Syncs emails via IMAP using an illusion progress, and then loads tickets.
+  /// Syncs emails via IMAP using an illusion progress, and then resets and loads tickets.
   Future<void> syncEmailsAndLoad() async {
     _isSyncing = true;
     notifyListeners();
@@ -161,22 +210,19 @@ class TicketListViewModel extends ChangeNotifier {
       // Intentionally silent
     }
 
-    await loadTickets();
+    await loadTickets(reset: true);
     
     _isSyncing = false;
     notifyListeners();
   }
 
   /// Deletes a specific ticket using an Optimistic UI approach.
-  /// Removes the ticket instantly from state and rolls back if the API request fails.
   Future<bool> deleteTicket(int ticketId) async {
     final int index = _tickets.indexWhere((ticket) => ticket.id == ticketId);
     if (index == -1) return false;
 
-    // Store backup for potential rollback
     final Ticket backupTicket = _tickets[index];
 
-    // Optimistically update UI
     _tickets.removeAt(index);
     _errorMessage = null;
     notifyListeners();
@@ -185,11 +231,16 @@ class TicketListViewModel extends ChangeNotifier {
       await ticketRepository.deleteTicket(ticketId);
       return true;
     } catch (e) {
-      // Rollback state if the network request fails
       _tickets.insert(index, backupTicket);
       _errorMessage = e.toString().replaceAll('Exception: ', '');
       notifyListeners();
       return false;
     }
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 }

@@ -1,3 +1,4 @@
+// Ficheiro: lib/features/users/repositories/user_repository.dart
 import '../../../core/network/api_client.dart';
 import '../models/user_model.dart';
 
@@ -17,7 +18,21 @@ class UserRepository {
     return data is List ? data : (data is Map ? data.values.toList() : []);
   }
 
-  /// Fetches all users from the system.
+  /// Fetches a paginated list of users from the system.
+  Future<Map<String, dynamic>> getPaginatedUsers({
+    int page = 1,
+    String query = '',
+    String role = '',
+  }) async {
+    final Map<String, dynamic> queryParams = {'page': page};
+    if (query.isNotEmpty) queryParams['search'] = query;
+    if (role.isNotEmpty && role != 'All') queryParams['role'] = role.toLowerCase();
+
+    final response = await apiClient.get('/users', queryParameters: queryParams);
+    return response;
+  }
+
+  /// Old implementation kept for backwards compatibility in non-paginated drop-downs.
   Future<List<UserModel>> getUsers() async {
     final Map<String, dynamic> response = await apiClient.get('/users');
     final List<dynamic> dataList = _extractDataList(response);

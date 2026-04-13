@@ -57,13 +57,16 @@ class TicketRepository {
   }
 
   /// Retrieves all tickets relevant to the authenticated user, optionally applying filters.
-  Future<List<Ticket>> getTickets({Map<String, dynamic>? filters}) async {
+  Future<List<Ticket>> getTickets({Map<String, dynamic>? filters, int page = 1}) async {
     String path = '/tickets';
+    final Map<String, dynamic> queryParams = {'page': page.toString()};
     
     if (filters != null && filters.isNotEmpty) {
-      final queryString = Uri(queryParameters: filters.map((k, v) => MapEntry(k, v.toString()))).query;
-      path = '$path?$queryString';
+      queryParams.addAll(filters.map((k, v) => MapEntry(k, v.toString())));
     }
+
+    final queryString = Uri(queryParameters: queryParams).query;
+    path = '$path?$queryString';
 
     final Map<String, dynamic> response = await apiClient.get(path);
     final List<dynamic> dataList = _extractDataList(response);

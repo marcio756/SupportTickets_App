@@ -7,6 +7,7 @@ import '../viewmodels/profile_viewmodel.dart';
 import 'components/profile_avatar.dart';
 import 'components/profile_form.dart';
 import 'components/profile_danger_zone.dart';
+import 'components/two_factor_settings_section.dart';
 
 /// Main screen responsible for displaying the user profile.
 /// Acts as an orchestrator combining the ViewModel and isolated UI components.
@@ -109,6 +110,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
                 
+                const SizedBox(height: 48),
+                
+                // Secção de 2FA
+                TwoFactorSettingsSection(
+                  profileRepository: widget.profileRepository,
+                  initialTwoFactorStatus: false, 
+                ),
+
                 const SizedBox(height: 48),
                 
                 ProfileDangerZone(

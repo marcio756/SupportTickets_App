@@ -1,3 +1,4 @@
+// Ficheiro: lib/features/profile/repositories/profile_repository.dart
 import '../../../core/network/api_client.dart';
 
 /// Repository responsible for handling user profile data and account settings.
@@ -38,5 +39,50 @@ class ProfileRepository {
   /// password in the [data] map for security validation before deletion.
   Future<void> deleteAccount({Map<String, dynamic>? data}) async {
     await apiClient.delete('/me', data: data);
+  }
+
+  // --- Two-Factor Authentication Endpoints ---
+
+  /// Enables 2FA for the current user.
+  /// Standard Laravel Fortify protocol requires a POST to enable, 
+  /// followed by GET requests to retrieve the SVG and Secret Key.
+  Future<Map<String, dynamic>> enableTwoFactor() async {
+    // 1. Activa o 2FA (Apenas devolve 200 OK sem payload)
+    await apiClient.post('/user/two-factor-authentication');
+    
+    // 2. Vai buscar os recursos gerados
+    final qrResponse = await apiClient.get('/user/two-factor-qr-code');
+    final secretResponse = await apiClient.get('/user/two-factor-secret-key');
+    
+    // Extrai com segurança as propriedades da resposta
+    final qrData = qrResponse is Map && qrResponse.containsKey('svg') ? qrResponse['svg'] : null;
+    final secretData = secretResponse is Map && secretResponse.containsKey('secretKey') ? secretResponse['secretKey'] : null;
+
+    return {
+      'svg': qrData,
+      'secretKey': secretData,
+    };
+  }
+
+  /// Confirms 2FA activation using the OTP code from the authenticator app.
+  Future<Map<String, dynamic>> confirmTwoFactor(String code) async {
+    return await apiClient.post('/user/confirmed-two-factor-authentication', data: {
+      'code': code,
+    });
+  }
+
+  /// Disables 2FA for the current user.
+  Future<void> disableTwoFactor() async {
+    await apiClient.delete('/user/two-factor-authentication');
+  }
+
+  /// Retrieves the recovery codes for 2FA.
+  Future<Map<String, dynamic>> getRecoveryCodes() async {
+    return await apiClient.get('/user/two-factor-recovery-codes');
+  }
+
+  /// Regenerates a new set of 2FA recovery codes.
+  Future<Map<String, dynamic>> regenerateRecoveryCodes() async {
+    return await apiClient.post('/user/two-factor-recovery-codes');
   }
 }

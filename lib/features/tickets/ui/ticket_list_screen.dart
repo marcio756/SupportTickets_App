@@ -30,18 +30,31 @@ class TicketListScreen extends StatefulWidget {
 
 class _TicketListScreenState extends State<TicketListScreen> {
   late final TicketListViewModel _viewModel;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _viewModel = TicketListViewModel(ticketRepository: widget.ticketRepository);
-    _viewModel.loadTickets();
+    _viewModel.loadTickets(reset: true);
+    
+    // Setup Infinite Scrolling listener
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _viewModel.dispose();
     super.dispose();
+  }
+
+  /// Triggers pagination load when the user is close to the bottom of the list.
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      _viewModel.loadTickets(); // loadTickets now automatically handles next pages
+    }
   }
 
   void _openFilters() {
@@ -53,7 +66,10 @@ class _TicketListScreenState extends State<TicketListScreen> {
         padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
         child: TicketFiltersBottomSheet(viewModel: _viewModel),
       ),
-    );
+    ).then((_) {
+      // When filters are closed, we refresh the list from page 1
+      _viewModel.loadTickets(reset: true);
+    });
   }
 
   @override
@@ -81,7 +97,6 @@ class _TicketListScreenState extends State<TicketListScreen> {
           child: ListenableBuilder(
             listenable: _viewModel,
             builder: (context, _) {
-              // Displays the progress illusion during sync operations
               if (_viewModel.isSyncing || (_viewModel.isLoading && _viewModel.tickets.isNotEmpty)) {
                 return ProgressIllusionBar(isComplete: !_viewModel.isSyncing && !_viewModel.isLoading);
               }
@@ -95,13 +110,14 @@ class _TicketListScreenState extends State<TicketListScreen> {
         child: ListenableBuilder(
           listenable: _viewModel,
           builder: (context, _) {
-            // Displays Snackbar dynamically for Optimistic UI rollbacks
-            if (_viewModel.errorMessage != null && _viewModel.tickets.isNotEmpty) {
+            if (_viewModel.errorMessage != null && _viewModel.tickets.isNotEmpty && !_viewModel.isLoadingMore) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(_viewModel.errorMessage!)),
                   );
+                  // Clear the error message to avoid infinite snackbars on rebuild
+                  _viewModel.clearFilters(); 
                 }
               });
             }
@@ -142,7 +158,7 @@ class _TicketListScreenState extends State<TicketListScreen> {
             ),
           );
           if (shouldRefresh == true) {
-            _viewModel.loadTickets();
+            _viewModel.loadTickets(reset: true);
           }
         },
         backgroundColor: Theme.of(context).colorScheme.primary,
@@ -152,7 +168,6 @@ class _TicketListScreenState extends State<TicketListScreen> {
   }
 
   Widget _buildContent() {
-    // Shows Skeleton Screens for initial loading states instead of CircularProgressIndicator
     if (_viewModel.isLoading && _viewModel.tickets.isEmpty) {
       return ListView.builder(
         padding: const EdgeInsets.all(16.0),
@@ -174,7 +189,7 @@ class _TicketListScreenState extends State<TicketListScreen> {
               const SizedBox(height: 8),
               Text(_viewModel.errorMessage!, textAlign: TextAlign.center),
               const SizedBox(height: 24),
-              ElevatedButton(onPressed: _viewModel.loadTickets, child: const Text('Try Again')),
+              ElevatedButton(onPressed: () => _viewModel.loadTickets(reset: true), child: const Text('Try Again')),
             ],
           ),
         ),
@@ -193,9 +208,24 @@ class _TicketListScreenState extends State<TicketListScreen> {
     return RefreshIndicator(
       onRefresh: _viewModel.syncEmailsAndLoad,
       child: ListView.builder(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16.0),
-        itemCount: _viewModel.tickets.length,
+        // +1 to render the loading indicator at the bottom if hasMore is true
+        itemCount: _viewModel.tickets.length + (_viewModel.hasMore ? 1 : 0),
         itemBuilder: (context, index) {
+          
+          if (index == _viewModel.tickets.length) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24.0),
+                child: _viewModel.isLoadingMore 
+                  ? const CircularProgressIndicator()
+                  : const SizedBox.shrink(), // Spacer until scroll hits threshold
+              ),
+            );
+          }
+
           final ticket = _viewModel.tickets[index];
           return TicketCard(
             ticket: ticket,

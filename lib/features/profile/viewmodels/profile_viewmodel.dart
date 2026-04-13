@@ -1,3 +1,4 @@
+// Ficheiro: lib/features/profile/viewmodels/profile_viewmodel.dart
 import 'package:flutter/foundation.dart';
 import '../repositories/profile_repository.dart';
 
@@ -13,6 +14,7 @@ class ProfileViewModel extends ChangeNotifier {
   String _email = '';
   String _teamId = '';
   String _teamName = '';
+  bool _hasTwoFactorEnabled = false;
 
   ProfileViewModel({required this.profileRepository});
 
@@ -22,6 +24,7 @@ class ProfileViewModel extends ChangeNotifier {
   String get email => _email;
   String get teamId => _teamId;
   String get teamName => _teamName;
+  bool get hasTwoFactorEnabled => _hasTwoFactorEnabled;
 
   /// Fetches the authenticated user profile data from the backend to hydrate the global application state.
   Future<void> loadProfileData({Function(String)? onError}) async {
@@ -30,14 +33,21 @@ class ProfileViewModel extends ChangeNotifier {
 
     try {
       final response = await profileRepository.getProfile();
-      final data = response.containsKey('data') ? response['data'] : response;
-
-      _name = data['name'] ?? '';
-      _email = data['email'] ?? '';
       
-      // Persists the organizational association locally to feed other feature modules (e.g., Teams, Vacations).
-      _teamId = data['team_id']?.toString() ?? ''; 
-      _teamName = data['team_name']?.toString() ?? ''; 
+      // Safety guard against unexpected response structures from the normalized ApiClient
+      final data = (response.containsKey('data')) ? response['data'] : response;
+
+      if (data is Map) {
+        _name = data['name'] ?? '';
+        _email = data['email'] ?? '';
+        
+        // Persists the organizational association locally to feed other feature modules (e.g., Teams, Vacations).
+        _teamId = data['team_id']?.toString() ?? ''; 
+        _teamName = data['team_name']?.toString() ?? ''; 
+        
+        // Mapeia o estado atual do 2FA a partir do recurso da API
+        _hasTwoFactorEnabled = data['has_two_factor_enabled'] ?? false;
+      }
     } catch (e) {
       if (onError != null) {
         onError(e.toString().replaceAll('Exception: ', ''));
@@ -94,8 +104,7 @@ class ProfileViewModel extends ChangeNotifier {
     required Function(String) onError,
   }) async {
     try {
-      // Action pending API integration for deactivation
-      // await profileRepository.deactivateAccount(password);
+      await profileRepository.deleteAccount(data: {'password': password});
       onSuccess();
     } catch (e) {
       onError(e.toString().replaceAll('Exception: ', ''));

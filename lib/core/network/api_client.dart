@@ -1,3 +1,4 @@
+// Ficheiro: lib/core/network/api_client.dart
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,7 +29,8 @@ class ApiClient {
 
   /// Configures base URL, timeouts, and intercepts requests to inject tokens.
   void _configureDio() {
-    _dio.options.baseUrl = '$hostUrl/api';
+    // A baseUrl TEM de terminar com uma barra para que as resoluções de caminho funcionem corretamente
+    _dio.options.baseUrl = '$hostUrl/api/v1/'; 
     _dio.options.connectTimeout = const Duration(seconds: 10);
     _dio.options.receiveTimeout = const Duration(seconds: 10);
     _dio.options.headers = {
@@ -58,72 +60,76 @@ class ApiClient {
     );
   }
 
-  /// Performs a generic GET request.
-  Future<Map<String, dynamic>> get(
+  /// Remove barras iniciais (/) dos caminhos para evitar que o Dio ignore a baseUrl.
+  String _normalizePath(String path) {
+    return path.startsWith('/') ? path.substring(1) : path;
+  }
+
+  /// Performs a generic GET request. Returns dynamic to handle Lists, Maps, or nulls safely.
+  Future<dynamic> get(
     String path, {
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
     try {
-      final response = await _dio.get(path, queryParameters: queryParameters, options: options);
-      return response.data as Map<String, dynamic>;
+      final response = await _dio.get(_normalizePath(path), queryParameters: queryParameters, options: options);
+      return response.data;
     } on DioException catch (e) {
       throw _handleError(e);
     }
   }
 
-  /// Performs a generic POST request.
-  Future<Map<String, dynamic>> post(
+  /// Performs a generic POST request. Returns dynamic to handle varied API responses.
+  Future<dynamic> post(
     String path, {
     dynamic data,
     Options? options,
   }) async {
     try {
-      final response = await _dio.post(path, data: data, options: options);
-      return response.data as Map<String, dynamic>;
+      final response = await _dio.post(_normalizePath(path), data: data, options: options);
+      return response.data;
     } on DioException catch (e) {
       throw _handleError(e);
     }
   }
 
-  /// Performs a generic PUT request.
-  Future<Map<String, dynamic>> put(
+  /// Performs a generic PUT request. Returns dynamic to handle varied API responses.
+  Future<dynamic> put(
     String path, {
     dynamic data,
     Options? options,
   }) async {
     try {
-      final response = await _dio.put(path, data: data, options: options);
-      return response.data as Map<String, dynamic>;
+      final response = await _dio.put(_normalizePath(path), data: data, options: options);
+      return response.data;
     } on DioException catch (e) {
       throw _handleError(e);
     }
   }
 
-  /// Performs a generic PATCH request.
-  Future<Map<String, dynamic>> patch(
+  /// Performs a generic PATCH request. Returns dynamic to handle varied API responses.
+  Future<dynamic> patch(
     String path, {
     dynamic data,
     Options? options,
   }) async {
     try {
-      final response = await _dio.patch(path, data: data, options: options);
-      return response.data as Map<String, dynamic>;
+      final response = await _dio.patch(_normalizePath(path), data: data, options: options);
+      return response.data;
     } on DioException catch (e) {
       throw _handleError(e);
     }
   }
 
-  /// Performs a generic DELETE request.
-  Future<Map<String, dynamic>> delete(
+  /// Performs a generic DELETE request. Returns dynamic to handle empty responses securely.
+  Future<dynamic> delete(
     String path, {
     dynamic data,
     Options? options,
   }) async {
     try {
-      // O Dio suporta enviar data em pedidos DELETE, permitindo validações no backend
-      final response = await _dio.delete(path, data: data, options: options);
-      return response.data as Map<String, dynamic>;
+      final response = await _dio.delete(_normalizePath(path), data: data, options: options);
+      return response.data;
     } on DioException catch (e) {
       throw _handleError(e);
     }

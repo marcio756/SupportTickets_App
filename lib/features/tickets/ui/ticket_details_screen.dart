@@ -368,7 +368,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                     mentions: mentions,
                   );
                   
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   
                   if (!success && _viewModel.errorMessage != null) {
                     ScaffoldMessenger.of(context).showSnackBar(

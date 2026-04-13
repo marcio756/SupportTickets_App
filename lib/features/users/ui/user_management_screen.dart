@@ -1,3 +1,4 @@
+// Ficheiro: lib/features/users/ui/user_management_screen.dart
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../viewmodels/user_management_viewmodel.dart';
@@ -8,7 +9,7 @@ import '../../tickets/repositories/ticket_repository.dart';
 import '../../profile/repositories/profile_repository.dart';
 
 /// Screen responsible for managing system users.
-/// Displays a list, filters, and handles create/edit/delete intents.
+/// Features Server-Side Pagination and Infinite Scrolling.
 class UserManagementScreen extends StatefulWidget {
   final UserManagementViewModel viewModel;
   final AuthRepository authRepository;
@@ -32,7 +33,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.viewModel.fetchUsers();
+      widget.viewModel.loadUsers(reset: true);
     });
   }
 
@@ -89,7 +90,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: widget.viewModel.fetchUsers,
+            onPressed: () => widget.viewModel.loadUsers(reset: true),
           ),
         ],
       ),
@@ -132,6 +133,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       Expanded(
                         flex: 1,
                         child: DropdownButtonFormField<String>(
+                          isExpanded: true, // Fix: impede o erro do RenderFlex Overflow (22px)
                           key: ValueKey(widget.viewModel.selectedRoleFilter),
                           initialValue: widget.viewModel.selectedRoleFilter,
                           decoration: InputDecoration(
@@ -169,32 +171,52 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
               if (!widget.viewModel.isLoading || widget.viewModel.users.isNotEmpty)
                 Expanded(
-                  child: ListView.builder(
-                    itemCount: widget.viewModel.filteredUsers.length,
-                    itemBuilder: (context, index) {
-                      final user = widget.viewModel.filteredUsers[index];
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: colorScheme.primaryContainer,
-                          child: Text(user.name[0].toUpperCase()),
-                        ),
-                        title: Text(user.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('${user.email} • ${user.role}'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blueGrey),
-                              onPressed: () => _showUserForm(user),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.redAccent),
-                              onPressed: () => _confirmDelete(user),
-                            ),
-                          ],
-                        ),
-                      );
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: (ScrollNotification scrollInfo) {
+                      // Trigger load more when reaching the bottom of the list
+                      if (!widget.viewModel.isLoadingMore && 
+                          widget.viewModel.hasMore &&
+                          scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
+                        widget.viewModel.loadMoreUsers();
+                        return true;
+                      }
+                      return false;
                     },
+                    child: ListView.builder(
+                      itemCount: widget.viewModel.users.length + (widget.viewModel.isLoadingMore ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == widget.viewModel.users.length) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16.0),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+
+                        // Fix: Corrigido o acesso direto ao .users resolvendo o getter undefined error
+                        final user = widget.viewModel.users[index];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: colorScheme.primaryContainer,
+                            child: Text(user.name[0].toUpperCase()),
+                          ),
+                          title: Text(user.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text('${user.email} • ${user.role}'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit, color: Colors.blueGrey),
+                                onPressed: () => _showUserForm(user),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                onPressed: () => _confirmDelete(user),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
             ],
@@ -229,7 +251,6 @@ class _UserFormSheetState extends State<_UserFormSheet> {
     _emailCtrl = TextEditingController(text: widget.user?.email ?? '');
     _passwordCtrl = TextEditingController();
     
-    // Fallbacks to ensure safe initialization depending on constraints
     if (widget.user != null) {
       _role = widget.user!.role;
     } else if (widget.viewModel.isSupporter) {
@@ -250,7 +271,6 @@ class _UserFormSheetState extends State<_UserFormSheet> {
       final payload = {
         'name': _nameCtrl.text.trim(),
         'email': _emailCtrl.text.trim(),
-        // Final frontend check: Override role entirely if the user is a supporter
         'role': widget.viewModel.isSupporter ? 'customer' : _role,
       };
 
@@ -304,6 +324,7 @@ class _UserFormSheetState extends State<_UserFormSheet> {
             else
               DropdownButtonFormField<String>(
                 initialValue: _role,
+                isExpanded: true,
                 decoration: const InputDecoration(hintText: 'Role', border: OutlineInputBorder()),
                 items: const [
                   DropdownMenuItem(value: 'admin', child: Text('Admin')),
