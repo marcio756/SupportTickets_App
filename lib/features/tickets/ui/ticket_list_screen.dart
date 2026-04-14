@@ -11,7 +11,11 @@ import 'ticket_details_screen.dart';
 import '../viewmodels/ticket_list_viewmodel.dart';
 import '../../../core/widgets/app_drawer.dart';
 import '../../../core/widgets/progress_illusion_bar.dart';
+import '../../../core/widgets/custom_search_bar.dart';
+import '../../../core/widgets/error_placeholder.dart';
 
+/// Screen displaying a paginated list of tickets with search and filter capabilities.
+/// Implements infinite scrolling and work session protection.
 class TicketListScreen extends StatefulWidget {
   final AuthRepository authRepository;
   final TicketRepository ticketRepository;
@@ -53,10 +57,11 @@ class _TicketListScreenState extends State<TicketListScreen> {
   /// Triggers pagination load when the user is close to the bottom of the list.
   void _onScroll() {
     if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-      _viewModel.loadTickets(); // loadTickets now automatically handles next pages
+      _viewModel.loadTickets(); 
     }
   }
 
+  /// Opens the filter bottom sheet and refreshes data on close.
   void _openFilters() {
     showModalBottomSheet(
       context: context,
@@ -67,7 +72,6 @@ class _TicketListScreenState extends State<TicketListScreen> {
         child: TicketFiltersBottomSheet(viewModel: _viewModel),
       ),
     ).then((_) {
-      // When filters are closed, we refresh the list from page 1
       _viewModel.loadTickets(reset: true);
     });
   }
@@ -110,13 +114,13 @@ class _TicketListScreenState extends State<TicketListScreen> {
         child: ListenableBuilder(
           listenable: _viewModel,
           builder: (context, _) {
+            // Handle error feedback for background operations when the list already has data
             if (_viewModel.errorMessage != null && _viewModel.tickets.isNotEmpty && !_viewModel.isLoadingMore) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(_viewModel.errorMessage!)),
                   );
-                  // Clear the error message to avoid infinite snackbars on rebuild
                   _viewModel.clearFilters(); 
                 }
               });
@@ -124,23 +128,9 @@ class _TicketListScreenState extends State<TicketListScreen> {
 
             return Column(
               children: [
-                Container(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search tickets...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                    ),
-                    onSubmitted: (value) => _viewModel.setSearchQuery(value),
-                  ),
+                CustomSearchBar(
+                  hintText: 'Search tickets...',
+                  onSubmitted: (value) => _viewModel.setSearchQuery(value),
                 ),
                 Expanded(
                   child: _buildContent(),
@@ -167,6 +157,7 @@ class _TicketListScreenState extends State<TicketListScreen> {
     );
   }
 
+  /// Renders the list content based on the ViewModel state.
   Widget _buildContent() {
     if (_viewModel.isLoading && _viewModel.tickets.isEmpty) {
       return ListView.builder(
@@ -177,22 +168,10 @@ class _TicketListScreenState extends State<TicketListScreen> {
     }
 
     if (_viewModel.errorMessage != null && _viewModel.tickets.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 60, color: Theme.of(context).colorScheme.error),
-              const SizedBox(height: 16),
-              const Text('Failed to load tickets', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text(_viewModel.errorMessage!, textAlign: TextAlign.center),
-              const SizedBox(height: 24),
-              ElevatedButton(onPressed: () => _viewModel.loadTickets(reset: true), child: const Text('Try Again')),
-            ],
-          ),
-        ),
+      return ErrorPlaceholder(
+        title: 'Failed to load tickets',
+        message: _viewModel.errorMessage!,
+        onRetry: () => _viewModel.loadTickets(reset: true),
       );
     }
     
@@ -211,17 +190,15 @@ class _TicketListScreenState extends State<TicketListScreen> {
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16.0),
-        // +1 to render the loading indicator at the bottom if hasMore is true
         itemCount: _viewModel.tickets.length + (_viewModel.hasMore ? 1 : 0),
         itemBuilder: (context, index) {
-          
           if (index == _viewModel.tickets.length) {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24.0),
                 child: _viewModel.isLoadingMore 
                   ? const CircularProgressIndicator()
-                  : const SizedBox.shrink(), // Spacer until scroll hits threshold
+                  : const SizedBox.shrink(),
               ),
             );
           }

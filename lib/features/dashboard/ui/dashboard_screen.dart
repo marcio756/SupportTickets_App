@@ -7,6 +7,7 @@ import '../../profile/repositories/profile_repository.dart';
 import '../repositories/dashboard_repository.dart';
 import '../viewmodels/dashboard_viewmodel.dart';
 import 'components/stat_card.dart';
+import 'components/ranking_card.dart';
 
 /// Main Dashboard Screen that dynamically displays content based on Role
 class DashboardScreen extends StatefulWidget {
@@ -131,12 +132,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 32),
         Text('Top Customers', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
-        _buildRankingCard(_viewModel.topCustomers, 'Customer', 'tickets_count', 'Tickets Created'),
+        RankingCard(
+          items: _viewModel.topCustomers, 
+          roleLabel: 'Customer', 
+          countKey: 'tickets_count', 
+          countLabel: 'Tickets Created',
+        ),
         
         const SizedBox(height: 32),
         Text('Top Supporters', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
-        _buildRankingCard(_viewModel.topSupporters, 'Supporter', 'resolved_count', 'Tickets Resolved'),
+        RankingCard(
+          items: _viewModel.topSupporters, 
+          roleLabel: 'Supporter', 
+          countKey: 'resolved_count', 
+          countLabel: 'Tickets Resolved',
+        ),
       ],
     );
   }
@@ -160,7 +171,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 32),
         Text('Top Customers', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
-        _buildRankingCard(_viewModel.topCustomers, 'Customer', 'tickets_count', 'Tickets Created'),
+        RankingCard(
+          items: _viewModel.topCustomers, 
+          roleLabel: 'Customer', 
+          countKey: 'tickets_count', 
+          countLabel: 'Tickets Created',
+        ),
       ],
     );
   }
@@ -178,46 +194,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ],
-    );
-  }
-
-  /// Reusable widget to render a leaderboard/ranking card (SRP)
-  Widget _buildRankingCard(List<dynamic> items, String roleLabel, String countKey, String countLabel) {
-    if (items.isEmpty) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text('No data available.'),
-        ),
-      );
-    }
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: items.length,
-        separatorBuilder: (context, index) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-              child: Text('#${index + 1}', style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer, fontWeight: FontWeight.bold)),
-            ),
-            title: Text(item['name']?.toString() ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text(item['email']?.toString() ?? ''),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(item[countKey]?.toString() ?? '0', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.primary)),
-                Text(countLabel, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-              ],
-            ),
-          );
-        },
-      ),
     );
   }
 }
