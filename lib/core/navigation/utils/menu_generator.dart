@@ -1,3 +1,4 @@
+// Ficheiro: lib/core/navigation/utils/menu_generator.dart
 import 'package:flutter/material.dart';
 import '../models/app_menu_item.dart';
 
@@ -36,9 +37,10 @@ class MenuGenerator {
     }
 
     // Common routes for all authenticated users
-    items.add(
+    items.addAll([
+      const AppMenuItem(title: 'Announcements', icon: Icons.campaign_outlined, routeName: '/announcements'),
       const AppMenuItem(title: 'Profile', icon: Icons.person_outline, routeName: '/profile'),
-    );
+    ]);
 
     return items;
   }

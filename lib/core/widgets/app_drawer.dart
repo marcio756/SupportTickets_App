@@ -1,3 +1,4 @@
+// Ficheiro: lib/core/widgets/app_drawer.dart
 import 'package:flutter/material.dart';
 import '../../features/auth/repositories/auth_repository.dart';
 import '../../features/profile/repositories/profile_repository.dart';
@@ -6,6 +7,7 @@ import '../../features/notifications/repositories/notification_repository.dart';
 import '../../features/tags/repositories/tag_repository.dart';
 import '../../features/activity_logs/repositories/activity_log_repository.dart';
 import '../../features/users/repositories/user_repository.dart';
+import '../../features/announcements/repositories/announcement_repository.dart';
 
 import '../../features/auth/ui/login_screen.dart';
 import '../../features/tickets/ui/ticket_list_screen.dart';
@@ -23,6 +25,8 @@ import '../../features/teams/ui/screens/team_screen.dart';
 import '../../features/teams/ui/screens/admin_team_management_screen.dart';
 import '../../features/vacations/ui/screens/vacation_list_screen.dart';
 import '../../features/vacations/ui/screens/vacation_calendar_screen.dart';
+import '../../features/announcements/ui/announcements_screen.dart';
+import '../../features/announcements/viewmodels/announcement_viewmodel.dart';
 
 import '../theme/theme_controller.dart';
 
@@ -167,6 +171,21 @@ class _AppDrawerState extends State<AppDrawer> {
                   )),
                 ),
                 
+                _buildNavItem(
+                  icon: Icons.campaign_rounded,
+                  title: 'Announcements',
+                  route: 'Announcements',
+                  onTap: () => _navigateTo('Announcements', AnnouncementsScreen(
+                    viewModel: AnnouncementViewModel(
+                      repository: AnnouncementRepository(apiClient: widget.authRepository.apiClient),
+                      profileRepository: widget.profileRepository,
+                    ),
+                    authRepository: widget.authRepository,
+                    ticketRepository: widget.ticketRepository,
+                    profileRepository: widget.profileRepository,
+                  )),
+                ),
+
                 if (_userRole != 'admin')
                   _buildNavItem(
                     icon: Icons.confirmation_number_rounded,
@@ -182,13 +201,13 @@ class _AppDrawerState extends State<AppDrawer> {
                     icon: Icons.people_outline_rounded,
                     title: 'My Team',
                     route: 'MyTeam',
-                    onTap: () => _navigateTo('MyTeam', TeamScreen(drawer: widget)), // Passa apenas a referência do menu
+                    onTap: () => _navigateTo('MyTeam', TeamScreen(drawer: widget)), 
                   ),
                   _buildNavItem(
                     icon: Icons.beach_access_outlined,
                     title: 'My Vacations',
                     route: 'MyVacations',
-                    onTap: () => _navigateTo('MyVacations', VacationListScreen(userId: _userId, drawer: widget)), // Passa a referência do menu
+                    onTap: () => _navigateTo('MyVacations', VacationListScreen(userId: _userId, drawer: widget)), 
                   ),
                 ],
                   
@@ -224,13 +243,13 @@ class _AppDrawerState extends State<AppDrawer> {
                       icon: Icons.group_work_outlined,
                       title: 'Team Management',
                       route: 'ManageTeams',
-                      onTap: () => _navigateTo('ManageTeams', AdminTeamManagementScreen(drawer: widget)), // Passa a referência do menu
+                      onTap: () => _navigateTo('ManageTeams', AdminTeamManagementScreen(drawer: widget)), 
                     ),
                     _buildNavItem(
                       icon: Icons.beach_access_rounded,
                       title: 'Global Vacations',
                       route: 'ManageVacations',
-                      onTap: () => _navigateTo('ManageVacations', VacationCalendarScreen(userId: _userId, drawer: widget)), // Passa a referência do menu
+                      onTap: () => _navigateTo('ManageVacations', VacationCalendarScreen(userId: _userId, drawer: widget)), 
                     ),
                   ],
                   

@@ -1,3 +1,4 @@
+// Ficheiro: lib/features/users/models/user_model.dart
 /// Represents a system user (Customer, Supporter, or Admin).
 /// Kept lightweight to hold only necessary data for management views.
 class UserModel {
@@ -5,12 +6,14 @@ class UserModel {
   final String name;
   final String email;
   final String role;
+  final DateTime? deletedAt;
 
   UserModel({
     required this.id,
     required this.name,
     required this.email,
     required this.role,
+    this.deletedAt,
   });
 
   /// Factory constructor to safely map Laravel JSON responses to the Dart object.
@@ -20,6 +23,7 @@ class UserModel {
       name: json['name'] as String,
       email: json['email'] as String,
       role: json['role'] as String? ?? 'customer',
+      deletedAt: json['deleted_at'] != null ? DateTime.parse(json['deleted_at'].toString()) : null,
     );
   }
 
@@ -30,6 +34,7 @@ class UserModel {
       'name': name,
       'email': email,
       'role': role,
+      'deleted_at': deletedAt?.toIso8601String(),
     };
   }
 }

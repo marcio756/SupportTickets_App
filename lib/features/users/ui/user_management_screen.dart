@@ -80,6 +80,30 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
+  void _confirmRestore(UserModel user) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restore User'),
+        content: Text('Are you sure you want to restore ${user.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await widget.viewModel.restoreUser(user.id); 
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.green),
+            child: const Text('Restore'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -129,11 +153,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     ),
                     
                     if (!widget.viewModel.isSupporter) ...[
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 8),
                       Expanded(
                         flex: 1,
                         child: DropdownButtonFormField<String>(
-                          isExpanded: true, // Fix: impede o erro do RenderFlex Overflow (22px)
+                          isExpanded: true,
                           key: ValueKey(widget.viewModel.selectedRoleFilter),
                           initialValue: widget.viewModel.selectedRoleFilter,
                           decoration: InputDecoration(
@@ -150,6 +174,28 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             DropdownMenuItem(value: 'customer', child: Text('Customer')),
                           ],
                           onChanged: widget.viewModel.setRoleFilter,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 1,
+                        child: DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          key: ValueKey(widget.viewModel.selectedStatusFilter),
+                          initialValue: widget.viewModel.selectedStatusFilter,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                          ),
+                          hint: const Text('Status'),
+                          items: const [
+                            DropdownMenuItem(value: 'active', child: Text('Active')),
+                            DropdownMenuItem(value: 'trashed', child: Text('Archived')),
+                            DropdownMenuItem(value: 'all', child: Text('All')),
+                          ],
+                          onChanged: widget.viewModel.setStatusFilter,
                         ),
                       ),
                     ],
@@ -192,26 +238,42 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           );
                         }
 
-                        // Fix: Corrigido o acesso direto ao .users resolvendo o getter undefined error
                         final user = widget.viewModel.users[index];
+                        final isDeleted = user.deletedAt != null;
+
                         return ListTile(
                           leading: CircleAvatar(
-                            backgroundColor: colorScheme.primaryContainer,
-                            child: Text(user.name[0].toUpperCase()),
+                            backgroundColor: isDeleted ? Colors.grey : colorScheme.primaryContainer,
+                            child: Text(user.name[0].toUpperCase(), style: TextStyle(color: isDeleted ? Colors.white : colorScheme.onPrimaryContainer)),
                           ),
-                          title: Text(user.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('${user.email} • ${user.role}'),
+                          title: Text(
+                            user.name, 
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              decoration: isDeleted ? TextDecoration.lineThrough : null,
+                              color: isDeleted ? Colors.grey : null,
+                            ),
+                          ),
+                          subtitle: Text('${user.email} • ${user.role}${isDeleted ? ' (Archived)' : ''}'),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit, color: Colors.blueGrey),
-                                onPressed: () => _showUserForm(user),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.redAccent),
-                                onPressed: () => _confirmDelete(user),
-                              ),
+                              if (!isDeleted) ...[
+                                IconButton(
+                                  icon: const Icon(Icons.edit, color: Colors.blueGrey),
+                                  onPressed: () => _showUserForm(user),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                  onPressed: () => _confirmDelete(user),
+                                ),
+                              ] else ...[
+                                IconButton(
+                                  icon: const Icon(Icons.restore, color: Colors.green),
+                                  tooltip: 'Restore User',
+                                  onPressed: () => _confirmRestore(user),
+                                ),
+                              ]
                             ],
                           ),
                         );

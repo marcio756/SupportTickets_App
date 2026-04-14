@@ -6,7 +6,7 @@ import '../repositories/user_repository.dart';
 import '../../profile/repositories/profile_repository.dart';
 
 /// Orchestrates the state for the User Management feature.
-/// Handles Infinite Scrolling, Role Filtering, and Server-Side Pagination.
+/// Handles Infinite Scrolling, Role Filtering, Status Filtering, and Server-Side Pagination.
 class UserManagementViewModel extends ChangeNotifier {
   final UserRepository _userRepository;
   final ProfileRepository _profileRepository;
@@ -18,6 +18,7 @@ class UserManagementViewModel extends ChangeNotifier {
   
   String _searchQuery = '';
   String? _selectedRoleFilter;
+  String _selectedStatusFilter = 'active';
   String? _currentUserRole;
 
   int _currentPage = 1;
@@ -30,6 +31,7 @@ class UserManagementViewModel extends ChangeNotifier {
   bool get hasMore => _hasMore;
   String? get errorMessage => _errorMessage;
   String? get selectedRoleFilter => _selectedRoleFilter;
+  String get selectedStatusFilter => _selectedStatusFilter;
   
   /// Boolean helper to check if the active user is a supporter
   bool get isSupporter => _currentUserRole?.toLowerCase() == 'supporter';
@@ -71,6 +73,7 @@ class UserManagementViewModel extends ChangeNotifier {
         page: _currentPage,
         query: _searchQuery,
         role: roleToFetch,
+        status: _selectedStatusFilter,
       );
 
       final dataWrapper = response.containsKey('data') ? response['data'] : response;
@@ -136,6 +139,13 @@ class UserManagementViewModel extends ChangeNotifier {
     loadUsers(reset: true);
   }
 
+  /// Updates the status filter (Active, Trashed, All) and re-fetches.
+  void setStatusFilter(String? status) {
+    if (status == null || _selectedStatusFilter == status) return;
+    _selectedStatusFilter = status;
+    loadUsers(reset: true);
+  }
+
   /// Unified method to handle both creation and updates from the UI.
   Future<bool> saveUser(Map<String, dynamic> userData, {int? id}) async {
     if (isSupporter) {
@@ -186,11 +196,38 @@ class UserManagementViewModel extends ChangeNotifier {
     _setLoading(true);
     try {
       await _userRepository.deleteUser(userId);
-      _users.removeWhere((u) => u.id == userId);
+      // Remove from view immediately, or update deletedAt if filter is 'all'
+      if (_selectedStatusFilter == 'all') {
+        loadUsers(reset: true); 
+      } else {
+        _users.removeWhere((u) => u.id == userId);
+      }
       _errorMessage = null;
       return true;
     } catch (e) {
       _errorMessage = 'Error deleting user: ${e.toString().replaceAll('Exception: ', '')}';
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> restoreUser(int userId) async {
+    _setLoading(true);
+    try {
+      final restoredUser = await _userRepository.restoreUser(userId);
+      if (_selectedStatusFilter == 'trashed') {
+        _users.removeWhere((u) => u.id == userId);
+      } else {
+        final index = _users.indexWhere((u) => u.id == userId);
+        if (index != -1) {
+          _users[index] = restoredUser;
+        }
+      }
+      _errorMessage = null;
+      return true;
+    } catch (e) {
+      _errorMessage = 'Error restoring user: ${e.toString().replaceAll('Exception: ', '')}';
       return false;
     } finally {
       _setLoading(false);

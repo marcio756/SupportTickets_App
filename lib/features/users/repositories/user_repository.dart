@@ -23,10 +23,18 @@ class UserRepository {
     int page = 1,
     String query = '',
     String role = '',
+    String status = 'active',
   }) async {
     final Map<String, dynamic> queryParams = {'page': page};
     if (query.isNotEmpty) queryParams['search'] = query;
     if (role.isNotEmpty && role != 'All') queryParams['role'] = role.toLowerCase();
+    
+    // Handling soft deletes filtering based on status
+    if (status == 'trashed') {
+      queryParams['trashed'] = 'only';
+    } else if (status == 'all') {
+      queryParams['trashed'] = 'with';
+    }
 
     final response = await apiClient.get('/users', queryParameters: queryParams);
     return response;
@@ -87,5 +95,12 @@ class UserRepository {
   /// Soft deletes or permanently deletes a user based on backend logic.
   Future<void> deleteUser(int userId) async {
     await apiClient.delete('/users/$userId');
+  }
+
+  /// Restores a soft-deleted user.
+  Future<UserModel> restoreUser(int userId) async {
+    final Map<String, dynamic> response = await apiClient.post('/users/$userId/restore');
+    final data = response.containsKey('data') ? response['data'] : response;
+    return UserModel.fromJson(data as Map<String, dynamic>);
   }
 }
